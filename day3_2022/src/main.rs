@@ -12,25 +12,35 @@ fn map_ascii(c: char) -> usize {
 
 fn part1() -> Result<(), Box<dyn Error>> {
     let match_items = |i1: &str, i2: &str| -> usize {
-        i1.chars().filter(|i| i2.chars().any(|f| *i == f)).map(|i| map_ascii(i)).nth(0).unwrap()
+        i1.chars()
+            .filter(|i| i2.chars().any(|f| *i == f))
+            .map(|i| map_ascii(i))
+            .nth(0)
+            .unwrap()
     };
     let input = INPUT
-    .split_whitespace()
-    .map(|i| i.split_at(i.len()/2))
-    .map(|(i1, i2)| (match_items(i1, i2)))
-    .sum::<usize>();
-    println!("{:?}",input);
+        .split_whitespace()
+        .map(|i| i.split_at(i.len() / 2))
+        .map(|(i1, i2)| (match_items(i1, i2)))
+        .sum::<usize>();
+    println!("{:?}", input);
     Ok(())
 }
 
 fn part2() -> Result<(), Box<dyn Error>> {
     let match_items = |i1: &str, i2: &str, i3: &str| -> usize {
-        i1.chars().filter(|i| i2.chars().any(|f| *i == f)).filter(|i| i3.chars().any(|f| *i ==f)).map(|i| map_ascii(i)).nth(0).unwrap()
+        i1.chars()
+            .filter(|i| i2.chars().any(|f| *i == f))
+            .filter(|i| i3.chars().any(|f| *i == f))
+            .map(|i| map_ascii(i))
+            .nth(0)
+            .unwrap()
     };
     let input: Vec<&str> = INPUT.split_whitespace().collect();
-    let prios = input.chunks(3)
-    .map(|i| (match_items(i[0], i[1], i[2])))
-    .sum::<usize>();
+    let prios = input
+        .chunks(3)
+        .map(|i| (match_items(i[0], i[1], i[2])))
+        .sum::<usize>();
     println!("{:?}", prios);
     Ok(())
 }

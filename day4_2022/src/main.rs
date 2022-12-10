@@ -1,14 +1,25 @@
 fn count_pairs(filter: fn(&(Vec<usize>, Vec<usize>)) -> bool) -> usize {
-    INPUT.split_ascii_whitespace()
-    .map(|l| l.split_terminator(',').collect::<Vec<_>>())
-    .map(|r| (r[0].split_terminator('-').map(|v| v.parse::<usize>().unwrap()).collect::<Vec<_>>(),
-              r[1].split_terminator('-').map(|v| v.parse::<usize>().unwrap()).collect::<Vec<_>>()))
-    .filter(|p| filter(p))
-    .count()
+    INPUT
+        .split_ascii_whitespace()
+        .map(|l| l.split_terminator(',').collect::<Vec<_>>())
+        .map(|r| {
+            (
+                r[0].split_terminator('-')
+                    .map(|v| v.parse::<usize>().unwrap())
+                    .collect::<Vec<_>>(),
+                r[1].split_terminator('-')
+                    .map(|v| v.parse::<usize>().unwrap())
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .filter(|p| filter(p))
+        .count()
 }
 
 fn part1() -> usize {
-    count_pairs(|p| (p.0[0] >= p.1[0] && p.0[1] <= p.1[1]) || (p.1[0] >= p.0[0] && p.1[1] <= p.0[1]))
+    count_pairs(|p| {
+        (p.0[0] >= p.1[0] && p.0[1] <= p.1[1]) || (p.1[0] >= p.0[0] && p.1[1] <= p.0[1])
+    })
 }
 
 fn part2() -> usize {

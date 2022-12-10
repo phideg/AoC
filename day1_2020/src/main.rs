@@ -9,12 +9,7 @@ fn calc_expenses(expenses: &Vec<u32>, n: usize) {
 
     let split_index = expenses.len() / 2;
     if split_index > 2 {
-        for expense in expenses
-            .split_at(expenses.len() / 2)
-            .0
-            .iter()
-            .enumerate()
-        {
+        for expense in expenses.split_at(expenses.len() / 2).0.iter().enumerate() {
             let delta = 2020 - *expense.1;
             if let Ok(found_at) = expenses.binary_search(&delta) {
                 if found_at != expense.0 {
@@ -24,7 +19,7 @@ fn calc_expenses(expenses: &Vec<u32>, n: usize) {
                         &delta,
                         expense.1 * &delta
                     );
-                    return Ok(());
+                    return;
                 }
             }
         }
@@ -40,7 +35,9 @@ fn main() -> std::io::Result<()> {
 
     let file = fs::File::open(&args[1])?;
     let lines = io::BufRead::lines(io::BufReader::new(file));
-    let n = args[2].parse::<usize>().expect(&format!("{} is not a number", &args[2]));
+    let n = args[2]
+        .parse::<usize>()
+        .expect(&format!("{} is not a number", &args[2]));
 
     // only keep expenses < 2020
     let expenses_up_to_2020 = lines
@@ -57,7 +54,6 @@ fn main() -> std::io::Result<()> {
         })
         .collect::<Vec<u32>>();
 
-    
     if n < 2 || n > expenses_up_to_2020.len() {
         return Ok(());
     }

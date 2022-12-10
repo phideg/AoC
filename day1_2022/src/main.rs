@@ -1,18 +1,19 @@
 use std::cmp::max;
 
 fn part1() {
-    let input = INPUT.split_terminator('\n').fold((0_usize,0_usize), |mut acc, i|
-    {
-        if i.is_empty() {
-            if acc.1 > acc.0 {
-                acc.0 = acc.1;
+    let input = INPUT
+        .split_terminator('\n')
+        .fold((0_usize, 0_usize), |mut acc, i| {
+            if i.is_empty() {
+                if acc.1 > acc.0 {
+                    acc.0 = acc.1;
+                }
+                acc.1 = 0;
+            } else {
+                acc.1 += i.parse::<usize>().unwrap();
             }
-            acc.1 = 0;
-        } else {
-            acc.1 += i.parse::<usize>().unwrap();
-        }
-        acc
-    });
+            acc
+        });
     println!("{}", max(input.0, input.1));
 }
 
@@ -30,15 +31,17 @@ fn part2() {
         }
         acc.0 = 0_usize;
     };
-    let mut input = INPUT.split_terminator('\n').fold((0_usize, 0_usize, 0_usize, 0_usize), |mut acc, i|
-    {
-        if i.is_empty() {
-            update_acc(&mut acc)
-        } else {
-            acc.0 += i.parse::<usize>().unwrap();
-        }
-        acc
-    });
+    let mut input =
+        INPUT
+            .split_terminator('\n')
+            .fold((0_usize, 0_usize, 0_usize, 0_usize), |mut acc, i| {
+                if i.is_empty() {
+                    update_acc(&mut acc)
+                } else {
+                    acc.0 += i.parse::<usize>().unwrap();
+                }
+                acc
+            });
     update_acc(&mut input);
     println!("{}", input.1 + input.2 + input.3);
 }

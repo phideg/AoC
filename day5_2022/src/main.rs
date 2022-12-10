@@ -2,12 +2,17 @@
 fn parse_stacks(lines: &str) -> Vec<Vec<char>> {
     let mut stack_lines = lines.split_terminator('\n').rev();
     let stack_header = stack_lines.next().unwrap();
-    let no_of_stacks: usize = stack_header.split_whitespace().last().unwrap().parse().unwrap();
+    let no_of_stacks: usize = stack_header
+        .split_whitespace()
+        .last()
+        .unwrap()
+        .parse()
+        .unwrap();
     let mut stacks = vec![Vec::new(); no_of_stacks];
     stack_lines.for_each(|l| {
         let mut chunks = l.chars().array_chunks();
         let mut i = 0;
-        while let Some([_,e,_,_]) = chunks.next() {
+        while let Some([_, e, _, _]) = chunks.next() {
             if !e.is_whitespace() {
                 stacks[i].push(e);
             }
@@ -21,10 +26,17 @@ fn parse_stacks(lines: &str) -> Vec<Vec<char>> {
 }
 
 fn parse_moves(lines: &str) -> Vec<(usize, usize, usize)> {
-    lines.split_terminator('\n')
-    .map(|l| l.split_whitespace().collect::<Vec<&str>>())
-    .map(|v| (v[1].parse().unwrap(), v[3].parse().unwrap(), v[5].parse().unwrap()))
-    .collect()
+    lines
+        .split_terminator('\n')
+        .map(|l| l.split_whitespace().collect::<Vec<&str>>())
+        .map(|v| {
+            (
+                v[1].parse().unwrap(),
+                v[3].parse().unwrap(),
+                v[5].parse().unwrap(),
+            )
+        })
+        .collect()
 }
 
 fn part1(mut stacks: Vec<Vec<char>>, moves: &[(usize, usize, usize)]) {
@@ -34,22 +46,34 @@ fn part1(mut stacks: Vec<Vec<char>>, moves: &[(usize, usize, usize)]) {
             stacks[*to - 1].push(mv);
         }
     });
-    println!("{}", stacks.iter().fold(String::new(), |mut acc, stack| { acc.push(*stack.last().unwrap()); acc }))
+    println!(
+        "{}",
+        stacks.iter().fold(String::new(), |mut acc, stack| {
+            acc.push(*stack.last().unwrap());
+            acc
+        })
+    )
 }
 
 fn part2(mut stacks: Vec<Vec<char>>, moves: &[(usize, usize, usize)]) {
     moves.iter().for_each(|(no, from, to)| {
-        let from_len = stacks[*from-1].len();
+        let from_len = stacks[*from - 1].len();
         let p = stacks[*from - 1].split_off(from_len - *no);
         stacks[*to - 1].extend_from_slice(&p);
     });
-    println!("{}", stacks.iter().fold(String::new(), |mut acc, stack| { acc.push(*stack.last().unwrap()); acc }))
+    println!(
+        "{}",
+        stacks.iter().fold(String::new(), |mut acc, stack| {
+            acc.push(*stack.last().unwrap());
+            acc
+        })
+    )
 }
 
 fn main() {
     let end_stack = INPUT.find("\n\n").unwrap();
     let stacks = parse_stacks(&INPUT[..end_stack]);
-    let moves = parse_moves(&INPUT[end_stack+2..]);
+    let moves = parse_moves(&INPUT[end_stack + 2..]);
     part1(stacks.clone(), &moves);
     part2(stacks, &moves);
 }

@@ -9,7 +9,7 @@ fn main() -> std::io::Result<()> {
 
     let file = fs::File::open(&args[1])?;
     let lines = io::BufRead::lines(io::BufReader::new(file));
-    
+
     let mut expenses_up_to_2020 = lines
         .into_iter()
         .filter_map(|line| {
