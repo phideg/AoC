@@ -8,8 +8,38 @@ enum Direction {
     Down,
 }
 
-fn part1() {
-    let input = INPUT
+fn move_rope(rope: &mut [(i32, i32)], direction: &Direction) -> bool {
+    let mut old_head = rope[0].clone();
+    match direction {
+        Direction::Up => rope[0].1 += 1,
+        Direction::Down => rope[0].1 -= 1,
+        Direction::Left => rope[0].0 -= 1,
+        Direction::Right => rope[0].0 += 1,
+    };
+    let mut tail_updated = false;
+    for i in 1..rope.len() {
+        let diff_x = i32::abs(rope[i].0 - rope[i - 1].0);
+        let diff_y = i32::abs(rope[i].1 - rope[i - 1].1);
+        if diff_x == 2 || diff_y == 2 {
+            old_head = std::mem::replace(&mut rope[i], old_head);
+            tail_updated = true;
+        };
+    }
+    tail_updated
+}
+
+fn exec_rope_moves(moves: &[Direction], rope: &mut [(i32, i32)]) -> usize {
+    let mut set = HashSet::new();
+    moves.iter().for_each(|d| {
+        if move_rope(rope, d) {
+            set.insert(rope.last().unwrap().clone());
+        }
+    });
+    set.iter().count()
+}
+
+fn decode_input(input: &str) -> Vec<Direction> {
+    input
         .split_terminator('\n')
         .filter(|l| !l.is_empty())
         .map(|l| {
@@ -39,46 +69,67 @@ fn part1() {
         .fold(Vec::new(), |mut acc, v| {
             acc.extend_from_slice(v.as_slice());
             acc
-        });
-    let mut head_x = 0;
-    let mut head_y = 0;
-    let mut tail_x = 0;
-    let mut tail_y = 0;
-    let mut set = HashSet::new();
-    input.iter().for_each(|d| {
-        let old_head_x = head_x;
-        let old_head_y = head_y;
-        match d {
-            Direction::Up => head_y += 1,
-            Direction::Down => head_y -= 1,
-            Direction::Left => head_x -= 1,
-            Direction::Right => head_x += 1,
-        };
-        let diff_x = i32::abs(tail_x - head_x);
-        let diff_y = i32::abs(tail_y - head_y);
-        if diff_x == 2 || diff_y == 2 {
-            tail_x = old_head_x;
-            tail_y = old_head_y;
-            set.insert((tail_x, tail_y));
-        };
-    });
-    println!("{}", set.iter().count());
+        })
+}
+
+fn part1(input: &[Direction]) -> usize {
+    let mut rope = vec![(0, 0); 2];
+    exec_rope_moves(input, &mut rope)
+}
+
+fn part2(input: &[Direction]) -> usize {
+    let mut rope = vec![(0, 0); 10];
+    exec_rope_moves(input, &mut rope)
 }
 
 fn main() {
-    part1();
+    let input = decode_input(INPUT);
+    println!("{}", part1(&input));
+    println!("{}", part2(&input));
 }
 
-const TEST: &str = r#"
+#[cfg(test)]
+mod test {
+    const TEST: &str = r#"
 R 4
 U 4
 L 3
 D 1
-R 14
+R 4
 D 1
 L 5
 R 2
 "#;
+
+    #[test]
+    fn test_rope_part1() {
+        let input = super::decode_input(TEST);
+        assert_eq!(super::part1(&input), 12);
+    }
+
+    #[test]
+    fn test_rope_part2() {
+        let input = super::decode_input(TEST);
+        assert_eq!(super::part2(&input), 1);
+    }
+
+    const PART2_TEST: &str = r#"
+R 5
+U 8
+L 8
+D 3
+R 17
+D 10
+L 25
+U 20
+    "#;
+
+    #[test]
+    fn test_rope_part2_complex() {
+        let input = super::decode_input(PART2_TEST);
+        assert_eq!(super::part2(&input), 35);
+    }
+}
 
 const INPUT: &str = r#"
 L 2
