@@ -3,7 +3,7 @@ fn decode_input(input: &str) -> Vec<Vec<char>> {
         .map(|l| l.spli)
 }
 
-fn part1()
+// fn part1()
 
 fn main() {
     println!("Hello, world!");
