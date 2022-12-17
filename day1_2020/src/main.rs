@@ -4,7 +4,7 @@ fn calc_expenses(expenses: &Vec<u32>, n: usize) {
     let input_len = expenses.len();
     let mut set: Vec<usize> = vec![0; n];
     for i in 1..n {
-        set[i] = i * (input_len / n as usize);
+        set[i] = i * (input_len / n);
     }
 
     let split_index = expenses.len() / 2;
@@ -17,7 +17,7 @@ fn calc_expenses(expenses: &Vec<u32>, n: usize) {
                         "Part1: found expense {} * {} = {}",
                         &expense.1,
                         &delta,
-                        expense.1 * &delta
+                        expense.1 * delta
                     );
                     return;
                 }
@@ -37,7 +37,7 @@ fn main() -> std::io::Result<()> {
     let lines = io::BufRead::lines(io::BufReader::new(file));
     let n = args[2]
         .parse::<usize>()
-        .expect(&format!("{} is not a number", &args[2]));
+        .unwrap_or_else(|_| panic!("{} is not a number", &args[2]));
 
     // only keep expenses < 2020
     let expenses_up_to_2020 = lines

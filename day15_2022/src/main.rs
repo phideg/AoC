@@ -59,9 +59,9 @@ fn part1(row: i32, input: &[[i32; 5]], min_x: i32, max_x: i32) -> usize {
 }
 
 fn part2(input: &[[i32; 5]], min_xy: i32, max_xy: i32) -> usize {
-    // This time we search within a window of our field. We search for the coordinates
-    // that are not in reach of any sensor. Therefore the the beacon itsself should
-    // not be ignored this time!
+    // This time we search within a window of our field. We search
+    // for the coordinates that are not in reach of any sensor.
+    // Therefore the the beacon itself should not be ignored this time!
     let mut x = min_xy;
     let mut y = min_xy;
     let mut found = false;
@@ -106,6 +106,18 @@ mod test {
         assert_eq!(12, part1(10, &input, min_x, max_x));
     }
 
+    #[test]
+    fn test_part1() {
+        let (input, min_x, max_x) = decode_input(TEST);
+        assert_eq!(26, part1(10, &input, min_x, max_x));
+    }
+
+    #[test]
+    fn test_part2() {
+        let (input, _, _) = decode_input(TEST);
+        assert_eq!(56000011, part2(&input, 0, 20));
+    }
+
     const TEST: &str = r#"
 Sensor at x=2, y=18: closest beacon is at x=-2, y=15
 Sensor at x=9, y=16: closest beacon is at x=10, y=16
@@ -122,18 +134,6 @@ Sensor at x=16, y=7: closest beacon is at x=15, y=3
 Sensor at x=14, y=3: closest beacon is at x=15, y=3
 Sensor at x=20, y=1: closest beacon is at x=15, y=3
 "#;
-
-    #[test]
-    fn test_part1() {
-        let (input, min_x, max_x) = decode_input(TEST);
-        assert_eq!(26, part1(10, &input, min_x, max_x));
-    }
-
-    #[test]
-    fn test_part2() {
-        let (input, _, _) = decode_input(TEST);
-        assert_eq!(56000011, part2(&input, 0, 20));
-    }
 }
 
 const INPUT: &str = r#"

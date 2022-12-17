@@ -2,7 +2,7 @@
 fn find_distinct_char_patch(input: &[char], patch_len: usize) -> usize {
     let mut offset = 0_usize;
     for (index, token) in input.windows(patch_len).enumerate() {
-        let mut token = token.iter().copied().collect::<Vec<_>>();
+        let mut token = token.to_vec();
         token.sort();
         if token.partition_dedup().1.is_empty() {
             offset = index + patch_len;

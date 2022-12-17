@@ -9,7 +9,7 @@ enum Direction {
 }
 
 fn move_rope(rope: &mut [(i32, i32)], direction: &Direction) -> bool {
-    let mut old_head = rope[0].clone();
+    let mut old_head = rope[0];
     match direction {
         Direction::Up => rope[0].1 += 1,
         Direction::Down => rope[0].1 -= 1,
@@ -28,8 +28,8 @@ fn move_rope(rope: &mut [(i32, i32)], direction: &Direction) -> bool {
             }
             (2, 1) | (1, 2) => {
                 if was_prev_move_diagonal {
-                    let cur_knot = rope[i].clone();
-                    let prev_knot = rope[i - 1].clone();
+                    let cur_knot = rope[i];
+                    let prev_knot = rope[i - 1];
                     if old_head.0 == rope[i].0 {
                         old_head = std::mem::replace(
                             &mut rope[i],
@@ -66,10 +66,10 @@ fn exec_rope_moves(moves: &[Direction], rope: &mut [(i32, i32)]) -> usize {
     let mut set = HashSet::new();
     moves.iter().for_each(|d| {
         if move_rope(rope, d) {
-            set.insert(rope.last().unwrap().clone());
+            set.insert(*rope.last().unwrap());
         }
     });
-    set.iter().count()
+    set.len()
 }
 
 fn decode_input(input: &str) -> Vec<Direction> {

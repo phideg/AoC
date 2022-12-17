@@ -1,4 +1,4 @@
-fn count_pairs(input: &str, filter: fn(&(Vec<usize>, Vec<usize>)) -> bool) -> usize {
+fn count_pairs(input: &str, fn_filter: fn(&(Vec<usize>, Vec<usize>)) -> bool) -> usize {
     input
         .split_ascii_whitespace()
         .map(|l| l.split_terminator(',').collect::<Vec<_>>())
@@ -12,7 +12,7 @@ fn count_pairs(input: &str, filter: fn(&(Vec<usize>, Vec<usize>)) -> bool) -> us
                     .collect::<Vec<_>>(),
             )
         })
-        .filter(|p| filter(p))
+        .filter(fn_filter)
         .count()
 }
 

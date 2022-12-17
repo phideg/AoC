@@ -39,7 +39,7 @@ fn main() -> std::io::Result<()> {
                     "found expense {} * {} = {}",
                     expense,
                     &delta,
-                    expense * &delta
+                    expense * delta
                 );
                 return Ok(());
             }
