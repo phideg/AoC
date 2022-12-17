@@ -39,46 +39,60 @@ fn parse_moves(lines: &str) -> Vec<(usize, usize, usize)> {
         .collect()
 }
 
-fn part1(mut stacks: Vec<Vec<char>>, moves: &[(usize, usize, usize)]) {
+fn decode_input(input: &str) -> (Vec<Vec<char>>, Vec<(usize, usize, usize)>) {
+    let end_stack = input.find("\n\n").unwrap();
+    let stacks = parse_stacks(&input[..end_stack]);
+    (stacks, parse_moves(&input[end_stack + 2..]))
+}
+
+fn part1(mut stacks: Vec<Vec<char>>, moves: &[(usize, usize, usize)]) -> String {
     moves.iter().for_each(|(no, from, to)| {
         for _ in 0..*no {
             let mv = stacks[*from - 1].pop().unwrap();
             stacks[*to - 1].push(mv);
         }
     });
-    println!(
-        "{}",
-        stacks.iter().fold(String::new(), |mut acc, stack| {
-            acc.push(*stack.last().unwrap());
-            acc
-        })
-    )
+    stacks.iter().fold(String::new(), |mut acc, stack| {
+        acc.push(*stack.last().unwrap());
+        acc
+    })
 }
 
-fn part2(mut stacks: Vec<Vec<char>>, moves: &[(usize, usize, usize)]) {
+fn part2(mut stacks: Vec<Vec<char>>, moves: &[(usize, usize, usize)]) -> String {
     moves.iter().for_each(|(no, from, to)| {
         let from_len = stacks[*from - 1].len();
         let p = stacks[*from - 1].split_off(from_len - *no);
         stacks[*to - 1].extend_from_slice(&p);
     });
-    println!(
-        "{}",
-        stacks.iter().fold(String::new(), |mut acc, stack| {
-            acc.push(*stack.last().unwrap());
-            acc
-        })
-    )
+    stacks.iter().fold(String::new(), |mut acc, stack| {
+        acc.push(*stack.last().unwrap());
+        acc
+    })
 }
 
 fn main() {
-    let end_stack = INPUT.find("\n\n").unwrap();
-    let stacks = parse_stacks(&INPUT[..end_stack]);
-    let moves = parse_moves(&INPUT[end_stack + 2..]);
-    part1(stacks.clone(), &moves);
-    part2(stacks, &moves);
+    let (stacks, moves) = decode_input(INPUT);
+    println!("{}", part1(stacks.clone(), &moves));
+    println!("{}", part2(stacks, &moves));
 }
 
-const TEST: &str = r#"
+#[cfg(test)]
+mod test {
+    use crate::{decode_input, part1, part2};
+
+    #[test]
+    fn test_part1() {
+        let (stacks, moves) = decode_input(TEST);
+        assert_eq!("CMZ", part1(stacks, &moves));
+    }
+
+    #[test]
+    fn test_part2() {
+        let (stacks, moves) = decode_input(TEST);
+        assert_eq!("MCD", part2(stacks, &moves));
+    }
+
+    const TEST: &str = r#"
     [D]
 [N] [C]
 [Z] [M] [P]
@@ -89,6 +103,7 @@ move 3 from 1 to 3
 move 2 from 2 to 1
 move 1 from 1 to 2
 "#;
+}
 
 const INPUT: &str = r#"
         [M]     [B]             [N]
