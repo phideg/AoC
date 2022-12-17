@@ -3,9 +3,8 @@ enum Operation {
     Addx(i32),
     Noop,
 }
-
-fn part1() {
-    let input = INPUT
+fn decode_input(input: &str) -> Vec<(i32, Operation)> {
+    input
         .split_terminator('\n')
         .filter(|l| !l.is_empty())
         .map(|l| {
@@ -16,9 +15,12 @@ fn part1() {
                     count => (2, Operation::Addx(count.parse::<i32>().unwrap())),
                 })
         })
-        .collect::<Vec<_>>();
-    let mut register_x = 1;
+        .collect::<Vec<_>>()
+}
+
+fn part1(input: &[(i32, Operation)]) -> i32 {
     let mut cycle = 0;
+    let mut register_x = 1;
     let mut program = input.iter();
     let mut instruction = program.next().unwrap().clone();
     let mut sum_x = 0;
@@ -41,14 +43,23 @@ fn part1() {
             }
         }
     }
-    println!("{sum_x}");
+    sum_x
 }
 
 fn main() {
-    part1();
+    println!("{}", part1(&decode_input(INPUT)));
 }
 
-const TEST: &str = r#"
+#[cfg(test)]
+mod test {
+    use crate::{decode_input, part1};
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(13140, part1(&decode_input(TEST)));
+    }
+
+    const TEST: &str = r#"
 addx 15
 addx -11
 addx 6
@@ -196,6 +207,7 @@ noop
 noop
 noop
 "#;
+}
 
 const INPUT: &str = r#"
 addx 1
