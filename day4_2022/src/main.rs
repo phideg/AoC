@@ -1,5 +1,5 @@
-fn count_pairs(filter: fn(&(Vec<usize>, Vec<usize>)) -> bool) -> usize {
-    INPUT
+fn count_pairs(input: &str, filter: fn(&(Vec<usize>, Vec<usize>)) -> bool) -> usize {
+    input
         .split_ascii_whitespace()
         .map(|l| l.split_terminator(',').collect::<Vec<_>>())
         .map(|r| {
@@ -16,22 +16,35 @@ fn count_pairs(filter: fn(&(Vec<usize>, Vec<usize>)) -> bool) -> usize {
         .count()
 }
 
-fn part1() -> usize {
-    count_pairs(|p| {
+fn part1(input: &str) -> usize {
+    count_pairs(input, |p| {
         (p.0[0] >= p.1[0] && p.0[1] <= p.1[1]) || (p.1[0] >= p.0[0] && p.1[1] <= p.0[1])
     })
 }
 
-fn part2() -> usize {
-    count_pairs(|p| !((p.0[1] < p.1[0]) || (p.0[0] > p.1[1])))
+fn part2(input: &str) -> usize {
+    count_pairs(input, |p| !((p.0[1] < p.1[0]) || (p.0[0] > p.1[1])))
 }
 
 fn main() {
-    println!("{}", part1());
-    println!("{}", part2());
+    println!("{}", part1(INPUT));
+    println!("{}", part2(INPUT));
 }
 
-static TEST: &str = r#"
+#[cfg(test)]
+mod test {
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(2, super::part1(TEST));
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(4, super::part2(TEST));
+    }
+
+    static TEST: &str = r#"
 2-4,6-8
 2-3,4-5
 5-7,7-9
@@ -39,6 +52,7 @@ static TEST: &str = r#"
 6-6,4-6
 2-6,4-8
 "#;
+}
 
 static INPUT: &str = r#"
 8-82,3-96
