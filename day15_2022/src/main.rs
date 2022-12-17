@@ -62,21 +62,31 @@ fn part2(input: &[[i32; 5]], min_xy: i32, max_xy: i32) -> usize {
     // This time we search within a window of our field. We search for the coordinates
     // that are not in reach of any sensor. Therefore the the beacon itsself should
     // not be ignored this time!
-    (min_xy..=max_xy).fold(0, |acc, y| {
-        let x = (min_xy..=max_xy)
-            .filter(|&x| {
-                !input
-                    .par_iter()
-                    .any(|s| manhatten_distance((x, y), (s[0], s[1])) <= s[4])
-            })
-            .collect::<Vec<_>>();
-        debug_assert!(x.len() < 2);
-        if x.len() == 1 {
-            (x[0] * 4000000 + y) as usize
-        } else {
-            acc
+    let mut x = min_xy;
+    let mut y = min_xy;
+    let mut found = false;
+    while y <= max_xy {
+        while x <= max_xy {
+            let delta = input
+                .par_iter()
+                .map(|s| s[4] - manhatten_distance((x, y), (s[0], s[1])))
+                .find_first(|&d| d >= 0);
+            if let Some(delta) = delta {
+                x += delta + 1;
+                continue;
+            } else {
+                found = true;
+                break;
+            }
         }
-    })
+        if found {
+            return (x * 4000000 + y) as usize;
+        } else {
+            x = min_xy;
+            y += 1;
+        }
+    }
+    0
 }
 
 fn main() {
