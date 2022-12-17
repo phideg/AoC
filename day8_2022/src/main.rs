@@ -57,27 +57,8 @@ fn get_scenic_score(my_y: usize, my_x: usize, wood: &[Vec<Tree>]) -> (usize, boo
     )
 }
 
-fn part1(wood: &[Vec<Tree>]) {
-    println!(
-        "{}",
-        wood.iter()
-            .map(|l| l.iter().filter(|t| t.is_visible).count())
-            .sum::<usize>()
-    );
-}
-
-fn part2(wood: &[Vec<Tree>]) {
-    println!(
-        "{}",
-        wood.iter()
-            .map(|l| l.iter().map(|t| t.scenic_score).max().unwrap())
-            .max()
-            .unwrap()
-    );
-}
-
-fn main() {
-    let mut wood = INPUT
+fn decode_input(input: &str) -> Vec<Vec<Tree>> {
+    let mut wood = input
         .split_terminator('\n')
         .filter(|z| !z.is_empty())
         .map(|line| {
@@ -97,17 +78,50 @@ fn main() {
             wood[y][x].scenic_score = scenic_score;
         }
     }
-    part1(&wood);
-    part2(&wood);
+    wood
 }
 
-const TEST: &str = r#"
+fn part1(wood: &[Vec<Tree>]) -> usize {
+    wood.iter()
+        .map(|l| l.iter().filter(|t| t.is_visible).count())
+        .sum::<usize>()
+}
+
+fn part2(wood: &[Vec<Tree>]) -> usize {
+    wood.iter()
+        .map(|l| l.iter().map(|t| t.scenic_score).max().unwrap())
+        .max()
+        .unwrap()
+}
+
+fn main() {
+    let wood = decode_input(INPUT);
+    println!("{}", part1(&wood));
+    println!("{}", part2(&wood));
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{decode_input, part1, part2};
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(21, part1(&decode_input(TEST)));
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(8, part2(&decode_input(TEST)));
+    }
+
+    const TEST: &str = r#"
 30373
 25512
 65332
 33549
 35390
 "#;
+}
 
 const INPUT: &str = r#"
 000101002102003121323241144233304242044444224322555122224111442430042002422404011033200102312010222
