@@ -62,31 +62,55 @@ fn part2(input: &[[i32; 5]], min_xy: i32, max_xy: i32) -> usize {
     // This time we search within a window of our field. We search
     // for the coordinates that are not in reach of any sensor.
     // Therefore the the beacon itself should not be ignored this time!
-    let mut x = min_xy;
-    let mut y = min_xy;
-    let mut found = false;
-    while y <= max_xy {
-        while x <= max_xy {
-            let delta = input
-                .par_iter()
-                .map(|s| s[4] - manhatten_distance((x, y), (s[0], s[1])))
-                .find_first(|&d| d >= 0);
-            if let Some(delta) = delta {
-                x += delta + 1;
-                continue;
-            } else {
-                found = true;
-                break;
+    let row_len = (max_xy - min_xy) as usize;
+    let mut field = vec![false; row_len * row_len];
+    input.iter().for_each(|s| {
+        for x in 0..=s[4] {
+            for y in s[4]..=x {
+                let pos = ((s[1] + y) as usize * row_len) + (s[0] + x) as usize;
+                if pos < field.len() {
+                    field[pos] = true;
+                }
+                if s[1] >= y && s[0] >= x {
+                    let pos = ((s[1] - y) as usize * row_len) + (s[0] - x) as usize;
+                    if pos < field.len() {
+                        field[pos] = true;
+                    }
+                }
             }
         }
-        if found {
-            return (x * 4000000 + y) as usize;
-        } else {
-            x = min_xy;
-            y += 1;
-        }
+    });
+    dbg!(&field);
+    if let Some((i, _)) = field.par_iter().enumerate().find_first(|&(_, f)| !f) {
+        ((i / row_len) as usize * 4000000) + i % row_len
+    } else {
+        0
     }
-    0
+    //     let mut x = min_xy;
+    //     let mut y = min_xy;
+    //     let mut found = false;
+    //     while y <= max_xy {
+    //         while x <= max_xy {
+    //             let delta = input
+    //                 .par_iter()
+    //                 .map(|s| s[4] - manhatten_distance((x, y), (s[0], s[1])))
+    //                 .find_first(|&d| d >= 0);
+    //             if let Some(delta) = delta {
+    //                 x += delta + 1;
+    //                 continue;
+    //             } else {
+    //                 found = true;
+    //                 break;
+    //             }
+    //         }
+    //         if found {
+    //             return (x * 4000000 + y) as usize;
+    //         } else {
+    //             x = min_xy;
+    //             y += 1;
+    //         }
+    //     }
+    //     0
 }
 
 fn main() {
