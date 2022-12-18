@@ -1,31 +1,109 @@
+use std::{cmp::min, fmt::Display};
+
 #[derive(Debug)]
 enum Move {
     Left,
     Right,
 }
 
-// #[derive(Debug)]
-// enum Shape {
-//     Minus,
-//     Plus,
-//     Edge,
-//     Bar,
-//     Cube,
-// }
+#[derive(Debug)]
+enum Shape {
+    Minus,
+    Plus,
+    Edge,
+    Bar,
+    Cube,
+}
 
-// const SEQUENCE: [Shape; 5] = [
-//     Shape::Minus,
-//     Shape::Plus,
-//     Shape::Edge,
-//     Shape::Bar,
-//     Shape::Cube,
-// ];
+const SEQUENCE: [Shape; 5] = [
+    Shape::Minus,
+    Shape::Plus,
+    Shape::Edge,
+    Shape::Bar,
+    Shape::Cube,
+];
 
-const MINUS: [u8; 1] = [0b00111101];
-const PLUS: [u8; 3] = [0b00010001, 0b00111001, 0b00010001];
-const EDGE: [u8; 3] = [0b00001001, 0b00001001, 0b00111001];
-const BAR: [u8; 4] = [0b00100001, 0b00100001, 0b00100001, 0b00100001];
-const CUBE: [u8; 2] = [0b00110001, 0b00110001];
+const MINUS: [u8; 1] = [0b_0011_1100];
+const PLUS: [u8; 3] = [0b_0001_0000, 0b_0011_1000, 0b_0001_0000];
+const EDGE: [u8; 3] = [0b_0000_1000, 0b_0000_1000, 0b_0011_1000];
+const BAR: [u8; 4] = [0b_0010_0000, 0b_0010_0000, 0b_0010_0000, 0b_0010_0000];
+const CUBE: [u8; 2] = [0b_0011_0000, 0b_0011_0000];
+
+struct Chamber {
+    stack: Vec<u8>,
+    shape_count: usize,
+}
+
+impl Chamber {
+    fn new(capacity: usize) -> Self {
+        Self {
+            stack: Vec::with_capacity(capacity),
+            shape_count: 0,
+        }
+    }
+
+    fn rock_position_ok(&self, position: usize, shape: &[u8]) -> bool {
+        (position..min(self.stack.len().saturating_sub(position), shape.len()))
+            .enumerate()
+            .all(|(s, pos)| shape[s] & self.stack[pos] == 0)
+    }
+
+    fn apply_fall(&mut self, new_position: usize, shape: &[u8]) {
+        shape
+            .iter()
+            .enumerate()
+            .for_each(|(i, s)| self.stack[new_position + i] &= *s);
+        self.shape_count += 1;
+    }
+
+    fn fill_hight(&self) -> usize {
+        if let Some((fill, _)) = self
+            .stack
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|(_, s)| *s & 0b_1111_1111 > 0)
+        {
+            fill
+        } else {
+            0
+        }
+    }
+
+    fn start_next_shape(&mut self) -> &[u8] {
+        (0..(3_usize - (self.stack.len() - self.fill_hight()))).for_each(|_| {
+            self.stack.push(0b_0000_0001);
+        });
+        match SEQUENCE[self.shape_count % SEQUENCE.len()] {
+            Shape::Minus => &MINUS,
+            Shape::Plus => &PLUS,
+            Shape::Edge => &EDGE,
+            Shape::Bar => &BAR,
+            Shape::Cube => &CUBE,
+        }
+    }
+}
+
+impl Display for Chamber {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "+-------+")?;
+        self.stack.iter().try_fold((), |_, s| -> std::fmt::Result {
+            Ok({
+                writeln!(
+                    f,
+                    "|{}|",
+                    (0..7)
+                        .map(|i| if (0b_0000_001 << i) & *s > 0 {
+                            '#'
+                        } else {
+                            '.'
+                        })
+                        .collect::<String>()
+                )?;
+            })
+        })
+    }
+}
 
 fn decode_input(input: &str) -> Vec<Move> {
     input.split_terminator('\n').filter(|l| !l.is_empty()).fold(
@@ -43,14 +121,43 @@ fn decode_input(input: &str) -> Vec<Move> {
     )
 }
 
-fn check_move(move: Move, chamber,)
+fn shift_shape(mov: &Move, shape: &mut [u8]) {
+    match mov {
+        Move::Left => {
+            if shape.iter().all(|s| s & 0b_1000_0000 == 0) {
+                shape.iter_mut().for_each(|s| *s <<= 1)
+            }
+        }
+        Move::Right => {
+            if shape.iter().all(|s| s & 0b_0000_0010 == 0) {
+                shape.iter().for_each(|s| println!("{:b}", *s));
+                shape.iter_mut().for_each(|s| *s >>= 1);
+                shape.iter().for_each(|s| println!("{:b}", *s));
+            }
+        }
+    }
+}
 
 fn part1(input: &[Move]) -> usize {
-    let mut chamber: Vec<u8> = Vec::with_capacity(input.len());
-    let mut next_shape = 0;
-    let mut next_move = 0;
-    loop {}
-    chamber.len()
+    let mut chamber = Chamber::new(input.len());
+    let mut shape = chamber.start_next_shape().to_vec();
+    let mut shape_pos = 0;
+    let mut moves = input.iter();
+    while let Some(next_move) = moves.next() {
+        // movement by jet stream
+        let orig_shape = shape.clone();
+        shift_shape(next_move, &mut shape);
+        if !chamber.rock_position_ok(shape_pos, &shape) {
+            shape = orig_shape;
+        }
+        // fall
+        shape_pos += 1;
+        if !chamber.rock_position_ok(shape_pos, &shape) {
+            chamber.apply_fall(shape_pos - 1, &shape);
+            shape = chamber.start_next_shape().to_vec();
+        }
+    }
+    chamber.fill_hight()
 }
 
 fn main() {

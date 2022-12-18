@@ -6,6 +6,7 @@ The tunnels eventually open into a very tall, narrow chamber. Large, oddly-shape
 
 The five types of rocks have the following peculiar shapes, where # is rock and . is empty space:
 
+```text
 ####
 
 .#.
@@ -23,6 +24,7 @@ The five types of rocks have the following peculiar shapes, where # is rock and 
 
 ##
 ##
+```
 
 The rocks fall in the order shown above: first the - shape, then the + shape, and so on. Once the end of the list is reached, the same order repeats: the - shape falls first, sixth, 11th, 16th, etc.
 
