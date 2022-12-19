@@ -1,12 +1,13 @@
-fn decode_input(input: &str) -> Vec<Vec<char>> {
-    input.split_terminator('\n').filter(|l| !l.is_empty())
-        .map(|l| l.spli)
+fn decode_input(_input: &str) -> Vec<Vec<char>> {
+    // input.split_terminator('\n').filter(|l| !l.is_empty())
+    //     .map(|l| l.spli)
+    vec![]
 }
 
 // fn part1()
 
 fn main() {
-    println!("Hello, world!");
+    decode_input(INPUT);
 }
 
 
@@ -26,3 +27,5 @@ abdefghi
 
     }
 }
+
+const INPUT: &str = "";

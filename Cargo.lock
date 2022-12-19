@@ -83,9 +83,10 @@ name = "day12_2022"
 version = "0.1.0"
 
 [[package]]
-<<<<<<< HEAD
 name = "day13_2022"
-=======
+version = "0.1.0"
+
+[[package]]
 name = "day15_2022"
 version = "0.1.0"
 dependencies = [
@@ -103,7 +104,6 @@ version = "0.1.0"
 
 [[package]]
 name = "day18_2022"
->>>>>>> cd0290296ac2413f114324fac9ded20e32e3429c
 version = "0.1.0"
 
 [[package]]
