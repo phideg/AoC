@@ -32,7 +32,7 @@ fn part2(input: &[usize]) {
             .chunks(2)
             .map(|t| {
                 match t[1] {
-                    NEED_TO_LOSE => LOSER_TABLE[t[0]] + 0,
+                    NEED_TO_LOSE => LOSER_TABLE[t[0]],
                     NEED_TO_DRAW => t[0] + 3,
                     NEED_TO_WIN => WINNER_TABLE[t[0]] + 6,
                     _ => panic!("malformed input"),

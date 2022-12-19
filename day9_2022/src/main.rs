@@ -9,7 +9,7 @@ enum Direction {
 }
 
 fn move_rope(rope: &mut [(i32, i32)], direction: &Direction) -> bool {
-    let mut old_head = rope[0].clone();
+    let mut old_head = rope[0];
     match direction {
         Direction::Up => rope[0].1 += 1,
         Direction::Down => rope[0].1 -= 1,
@@ -17,12 +17,46 @@ fn move_rope(rope: &mut [(i32, i32)], direction: &Direction) -> bool {
         Direction::Right => rope[0].0 += 1,
     };
     let mut tail_updated = false;
+    let mut was_prev_move_diagonal = false;
     for i in 1..rope.len() {
         let diff_x = i32::abs(rope[i].0 - rope[i - 1].0);
         let diff_y = i32::abs(rope[i].1 - rope[i - 1].1);
-        if diff_x == 2 || diff_y == 2 {
-            old_head = std::mem::replace(&mut rope[i], old_head);
-            tail_updated = true;
+        match (diff_x, diff_y) {
+            (2, 2) => {
+                assert!(was_prev_move_diagonal);
+                old_head = std::mem::replace(&mut rope[i], old_head);
+            }
+            (2, 1) | (1, 2) => {
+                if was_prev_move_diagonal {
+                    let cur_knot = rope[i];
+                    let prev_knot = rope[i - 1];
+                    if old_head.0 == rope[i].0 {
+                        old_head = std::mem::replace(
+                            &mut rope[i],
+                            (prev_knot.0, cur_knot.1 + prev_knot.1 - old_head.1),
+                        );
+                    } else if old_head.1 == rope[i].1 {
+                        old_head = std::mem::replace(
+                            &mut rope[i],
+                            (cur_knot.0 + prev_knot.0 - old_head.0, prev_knot.1),
+                        );
+                    }
+                } else {
+                    old_head = std::mem::replace(&mut rope[i], old_head);
+                    was_prev_move_diagonal = true;
+                }
+                tail_updated = true;
+            }
+            (2, 0) | (0, 2) => {
+                old_head = std::mem::replace(&mut rope[i], old_head);
+                was_prev_move_diagonal = false;
+                tail_updated = true;
+            }
+            (x, y) => {
+                assert!(x <= 1 && y <= 1);
+                was_prev_move_diagonal = false;
+                tail_updated = false;
+            }
         };
     }
     tail_updated
@@ -32,10 +66,10 @@ fn exec_rope_moves(moves: &[Direction], rope: &mut [(i32, i32)]) -> usize {
     let mut set = HashSet::new();
     moves.iter().for_each(|d| {
         if move_rope(rope, d) {
-            set.insert(rope.last().unwrap().clone());
+            set.insert(*rope.last().unwrap());
         }
     });
-    set.iter().count()
+    set.len()
 }
 
 fn decode_input(input: &str) -> Vec<Direction> {
@@ -110,7 +144,7 @@ R 2
     #[test]
     fn test_rope_part2() {
         let input = super::decode_input(TEST);
-        assert_eq!(super::part2(&input), 1);
+        assert_eq!(super::part2(&input), 0);
     }
 
     const PART2_TEST: &str = r#"

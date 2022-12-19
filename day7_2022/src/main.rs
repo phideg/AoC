@@ -18,10 +18,10 @@ fn calc_dir_size(dir: &Dir, dirs: &[Dir]) -> usize {
     dir.size + size_subdirs
 }
 
-fn part1() {
+fn part1(input: &str) -> usize {
     let mut directories = Vec::new();
     let mut current_path = Vec::new();
-    for line in INPUT.split_terminator('\n').filter(|f| !f.is_empty()) {
+    for line in input.split_terminator('\n').filter(|f| !f.is_empty()) {
         let tokens = line
             .split_whitespace()
             .filter(|f| !f.is_empty())
@@ -54,21 +54,26 @@ fn part1() {
                 .unwrap(),
         }
     }
-    println!(
-        "{}",
-        directories
-            .iter()
-            .map(|d| calc_dir_size(d, &directories))
-            .filter(|s| *s < 100000)
-            .sum::<usize>()
-    );
+    directories
+        .iter()
+        .map(|d| calc_dir_size(d, &directories))
+        .filter(|s| *s < 100000)
+        .sum::<usize>()
 }
 
 fn main() {
-    part1();
+    println!("{}", part1(INPUT));
 }
 
-const TEST: &str = r#"
+#[cfg(test)]
+mod test {
+    use crate::part1;
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(95437, part1(TEST));
+    }
+    const TEST: &str = r#"
 $ cd /
 $ ls
 dir a
@@ -93,6 +98,7 @@ $ ls
 5626152 d.ext
 7214296 k
 "#;
+}
 
 const INPUT: &str = r#"
 $ cd /

@@ -14,8 +14,8 @@ fn part1() -> Result<(), Box<dyn Error>> {
     let match_items = |i1: &str, i2: &str| -> usize {
         i1.chars()
             .filter(|i| i2.chars().any(|f| *i == f))
-            .map(|i| map_ascii(i))
-            .nth(0)
+            .map(map_ascii)
+            .next()
             .unwrap()
     };
     let input = INPUT
@@ -32,8 +32,8 @@ fn part2() -> Result<(), Box<dyn Error>> {
         i1.chars()
             .filter(|i| i2.chars().any(|f| *i == f))
             .filter(|i| i3.chars().any(|f| *i == f))
-            .map(|i| map_ascii(i))
-            .nth(0)
+            .map(map_ascii)
+            .next()
             .unwrap()
     };
     let input: Vec<&str> = INPUT.split_whitespace().collect();
