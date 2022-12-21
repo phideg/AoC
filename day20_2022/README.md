@@ -36,10 +36,10 @@ Initial arrangement:
 
 2 moves between -3 and 3:
 1, -3, 2, 3, -2, 0, 4
-
+   1
 -3 moves between -2 and 0:
 1, 2, 3, -2, -3, 0, 4
-
+             4
 3 moves between 0 and 4:
 1, 2, -2, -3, 0, 3, 4
 

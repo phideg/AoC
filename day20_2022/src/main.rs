@@ -9,25 +9,64 @@ fn decode_input(input: &str) -> Vec<i32> {
         .collect()
 }
 
+fn display_list(list: &LinkedList<usize>, input: &[i32]) {
+    list.iter().map(|e| input[*e]).take(10).for_each(|e| {
+        print!("{}, ", e);
+    });
+    if list.len() > 10 {
+        print!("...");
+    }
+    println!();
+}
+
 fn part1(input: &[i32]) -> i32 {
     let mut list = LinkedList::from_iter(0_usize..input.len());
+    display_list(&list, input);
     input.iter().enumerate().for_each(|(index, code)| {
-        let pos = list.iter().position(|v| *v == index).unwrap();
-        let new_pos = i32::abs((pos as i32 + *code) % input.len() as i32) as usize;
-        let mut split = list.split_off(new_pos);
-        if pos < list.len() {
-            list.remove(pos);
-        } else {
-            split.remove(pos - list.len());
+        if *code != 0 {
+            let pos = list.iter().position(|v| *v == index).unwrap();
+            let new_pos = if *code < 0 {
+                let new_pos = (pos as i32 + *code) % input.len() as i32;
+                if new_pos < 0 {
+                    ((input.len() as i32 - 1) + new_pos) as usize
+                } else {
+                    new_pos as usize
+                }
+            } else {
+                ((pos as i32 + *code) % input.len() as i32) as usize
+            };
+            if new_pos != pos {
+                list.remove(pos);
+                if new_pos == 0 {
+                    if *code < 0 {
+                        list.push_back(index);
+                    } else {
+                        list.push_front(index);
+                    }
+                } else if new_pos == input.len() - 1 {
+                    if *code < 0 {
+                        list.push_back(index);
+                    } else {
+                        list.push_front(index);
+                    }
+                } else {
+                    let mut split = if new_pos < pos {
+                        list.split_off(new_pos + 1)
+                    } else {
+                        list.split_off(new_pos)
+                    };
+                    split.push_front(index);
+                    list.append(&mut split);
+                }
+            }
+            display_list(&list, input);
         }
-        split.push_front(index);
-        list.append(&mut split);
     });
-    let pos = input.iter().position(|v| *v == 0).unwrap();
-    let pos = list.iter().position(|v| *v == pos).unwrap();
-    input[*list.iter().nth((pos + 1000) % input.len()).unwrap()]
-        + input[*list.iter().nth((pos + 2000) % input.len()).unwrap()]
-        + input[*list.iter().nth((pos + 3000) % input.len()).unwrap()]
+    let index = input.iter().position(|v| *v == 0).unwrap();
+    let pos = list.iter().position(|v| *v == index).unwrap();
+    dbg!(input[*list.iter().nth((pos + 1000) % input.len()).unwrap()])
+        + dbg!(input[*list.iter().nth((pos + 2000) % input.len()).unwrap()])
+        + dbg!(input[*list.iter().nth((pos + 3000) % input.len()).unwrap()])
 }
 
 fn main() {

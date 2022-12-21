@@ -10,7 +10,6 @@ fn main() {
     decode_input(INPUT);
 }
 
-
 #[cfg(test)]
 mod test {
 
@@ -23,9 +22,7 @@ abdefghi
     "#;
 
     #[test]
-    fn test_part1() {
-
-    }
+    fn test_part1() {}
 }
 
 const INPUT: &str = "";
