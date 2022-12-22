@@ -55,8 +55,34 @@ fn ask_monkey(input: &MonkeyMap, monkey: &str) -> usize {
     }
 }
 
+fn monkey_calls_human(input: &MonkeyMap, monkey: &str) -> bool {
+    if monkey == "humn" {
+        return true;
+    }
+    match input[monkey].1 {
+        Operation::Add(a, b) => monkey_calls_human(input, a) || monkey_calls_human(input, b),
+        Operation::Sub(a, b) => monkey_calls_human(input, a) || monkey_calls_human(input, b),
+        Operation::Mul(a, b) => monkey_calls_human(input, a) || monkey_calls_human(input, b),
+        Operation::Div(a, b) => monkey_calls_human(input, a) || monkey_calls_human(input, b),
+        Operation::Val(v) => false,
+    }
+}
+
 fn part1(input: &MonkeyMap) -> usize {
     ask_monkey(input, "root")
+}
+
+fn part2(input: &MonkeyMap) -> usize {
+    let root = input["root"];
+    if let Operation::Add(monkey_left, monkey_right) = root.1 {
+        let left = ask_monkey(input, monkey_left);
+        let right = ask_monkey(input, monkey_right);
+        if monkey_calls_human(input, monkey_left) {
+
+        }
+    } else {
+        println!("unexpected input");
+    }
 }
 
 fn main() {
