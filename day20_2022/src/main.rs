@@ -25,39 +25,24 @@ fn part1(input: &[i32]) -> i32 {
     input.iter().enumerate().for_each(|(index, code)| {
         if *code != 0 {
             let pos = list.iter().position(|v| *v == index).unwrap();
+            list.remove(pos);
+            // display_list(&list, input);
             let new_pos = if *code < 0 {
-                let new_pos = (pos as i32 + *code) % input.len() as i32;
+                let new_pos = (pos as i32 + *code) % list.len() as i32;
                 if new_pos < 0 {
-                    ((input.len() as i32 - 1) + new_pos) as usize
+                    (list.len() as i32 + new_pos) as usize
                 } else {
                     new_pos as usize
                 }
             } else {
-                ((pos as i32 + *code) % input.len() as i32) as usize
+                ((pos as i32 + *code) % list.len() as i32) as usize
             };
-            if new_pos != pos {
-                list.remove(pos);
-                if new_pos == 0 {
-                    if *code < 0 {
-                        list.push_back(index);
-                    } else {
-                        list.push_front(index);
-                    }
-                } else if new_pos == input.len() - 1 {
-                    if *code < 0 {
-                        list.push_back(index);
-                    } else {
-                        list.push_front(index);
-                    }
-                } else {
-                    let mut split = if new_pos < pos {
-                        list.split_off(new_pos + 1)
-                    } else {
-                        list.split_off(new_pos)
-                    };
-                    split.push_front(index);
-                    list.append(&mut split);
-                }
+            if new_pos == 0 {
+                list.push_back(index);
+            } else {
+                let mut split = list.split_off(new_pos);
+                split.push_front(index);
+                list.append(&mut split);
             }
             display_list(&list, input);
         }
