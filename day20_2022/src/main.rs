@@ -1,7 +1,9 @@
 #![feature(linked_list_remove)]
 use std::collections::LinkedList;
 
-fn decode_input(input: &str) -> Vec<i32> {
+const DECRYPTION_KEY: i64 = 811589153;
+
+fn decode_input(input: &str) -> Vec<i64> {
     input
         .split_terminator('\n')
         .filter(|l| !l.is_empty())
@@ -9,7 +11,7 @@ fn decode_input(input: &str) -> Vec<i32> {
         .collect()
 }
 
-fn display_list(list: &LinkedList<usize>, input: &[i32]) {
+fn display_list(list: &LinkedList<usize>, input: &[i64]) {
     list.iter().map(|e| input[*e]).take(10).for_each(|e| {
         print!("{}, ", e);
     });
@@ -19,23 +21,21 @@ fn display_list(list: &LinkedList<usize>, input: &[i32]) {
     println!();
 }
 
-fn part1(input: &[i32]) -> i32 {
-    let mut list = LinkedList::from_iter(0_usize..input.len());
-    display_list(&list, input);
+fn mix_list(input: &[i64], list: &mut LinkedList<usize>) {
     input.iter().enumerate().for_each(|(index, code)| {
         if *code != 0 {
             let pos = list.iter().position(|v| *v == index).unwrap();
             list.remove(pos);
             // display_list(&list, input);
             let new_pos = if *code < 0 {
-                let new_pos = (pos as i32 + *code) % list.len() as i32;
+                let new_pos = (pos as i64 + *code) % list.len() as i64;
                 if new_pos < 0 {
-                    (list.len() as i32 + new_pos) as usize
+                    (list.len() as i64 + new_pos) as usize
                 } else {
                     new_pos as usize
                 }
             } else {
-                ((pos as i32 + *code) % list.len() as i32) as usize
+                ((pos as i64 + *code) % list.len() as i64) as usize
             };
             if new_pos == 0 {
                 list.push_back(index);
@@ -44,28 +44,56 @@ fn part1(input: &[i32]) -> i32 {
                 split.push_front(index);
                 list.append(&mut split);
             }
-            display_list(&list, input);
         }
     });
+}
+
+fn read_grove_coordinates(input: &[i64], list: &LinkedList<usize>) -> i64 {
     let index = input.iter().position(|v| *v == 0).unwrap();
     let pos = list.iter().position(|v| *v == index).unwrap();
-    dbg!(input[*list.iter().nth((pos + 1000) % input.len()).unwrap()])
-        + dbg!(input[*list.iter().nth((pos + 2000) % input.len()).unwrap()])
-        + dbg!(input[*list.iter().nth((pos + 3000) % input.len()).unwrap()])
+    input[*list.iter().nth((pos + 1000) % input.len()).unwrap()]
+        + input[*list.iter().nth((pos + 2000) % input.len()).unwrap()]
+        + input[*list.iter().nth((pos + 3000) % input.len()).unwrap()]
+}
+
+fn part1(input: &[i64]) -> i64 {
+    let mut list = LinkedList::from_iter(0_usize..input.len());
+    display_list(&list, input);
+    mix_list(input, &mut list);
+    read_grove_coordinates(input, &list)
+}
+
+fn part2(input: &[i64]) -> i64 {
+    let input = input
+        .iter()
+        .map(|n| *n * DECRYPTION_KEY)
+        .collect::<Vec<_>>();
+    let mut list = LinkedList::from_iter(0_usize..input.len());
+    display_list(&list, &input);
+    for _ in 0..10 {
+        mix_list(&input, &mut list);
+    }
+    read_grove_coordinates(&input, &list)
 }
 
 fn main() {
     let input = decode_input(INPUT);
-    println!("{}", part1(&input));
+    println!("Part 1: {}", part1(&input));
+    println!("Part 2: {}", part2(&input));
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{decode_input, part1};
+    use crate::{decode_input, part1, part2};
 
     #[test]
-    fn test_part() {
+    fn test_part1() {
         assert_eq!(3, part1(&decode_input(TEST)));
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(1623178306, part2(&decode_input(TEST)));
     }
 
     const TEST: &str = r#"
