@@ -1,3 +1,4 @@
+use core::panic;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -64,7 +65,44 @@ fn monkey_calls_human(input: &MonkeyMap, monkey: &str) -> bool {
         Operation::Sub(a, b) => monkey_calls_human(input, a) || monkey_calls_human(input, b),
         Operation::Mul(a, b) => monkey_calls_human(input, a) || monkey_calls_human(input, b),
         Operation::Div(a, b) => monkey_calls_human(input, a) || monkey_calls_human(input, b),
-        Operation::Val(v) => false,
+        Operation::Val(_) => false,
+    }
+}
+
+fn get_humn_yell(input: &MonkeyMap, monkey: &str, expected_value: usize) -> usize {
+    if monkey == "humn" {
+        return expected_value;
+    }
+    match input[monkey].1 {
+        Operation::Add(a, b) => {
+            if monkey_calls_human(input, a) {
+                get_humn_yell(input, a, expected_value - ask_monkey(input, b))
+            } else {
+                get_humn_yell(input, b, expected_value - ask_monkey(input, a))
+            }
+        }
+        Operation::Sub(a, b) => {
+            if monkey_calls_human(input, a) {
+                get_humn_yell(input, a, expected_value + ask_monkey(input, b))
+            } else {
+                get_humn_yell(input, b, ask_monkey(input, a) - expected_value)
+            }
+        }
+        Operation::Mul(a, b) => {
+            if monkey_calls_human(input, a) {
+                get_humn_yell(input, a, expected_value / ask_monkey(input, b))
+            } else {
+                get_humn_yell(input, b, expected_value / ask_monkey(input, a))
+            }
+        }
+        Operation::Div(a, b) => {
+            if monkey_calls_human(input, a) {
+                get_humn_yell(input, a, expected_value * ask_monkey(input, b))
+            } else {
+                get_humn_yell(input, b, ask_monkey(input, a) / expected_value)
+            }
+        }
+        _ => panic!("unexpected input"),
     }
 }
 
@@ -73,30 +111,36 @@ fn part1(input: &MonkeyMap) -> usize {
 }
 
 fn part2(input: &MonkeyMap) -> usize {
-    let root = input["root"];
+    let root = &input["root"];
     if let Operation::Add(monkey_left, monkey_right) = root.1 {
-        let left = ask_monkey(input, monkey_left);
-        let right = ask_monkey(input, monkey_right);
         if monkey_calls_human(input, monkey_left) {
-
+            get_humn_yell(input, monkey_left, ask_monkey(input, monkey_right))
+        } else {
+            get_humn_yell(input, monkey_right, ask_monkey(input, monkey_left))
         }
     } else {
-        println!("unexpected input");
+        panic!("unexpected input");
     }
 }
 
 fn main() {
     println!("Part 1: {}", part1(&decode_input(INPUT)));
+    println!("Part 2: {}", part2(&decode_input(INPUT)));
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{decode_input, part1};
+    use crate::{decode_input, part1, part2};
 
     #[test]
     fn test_part1() {
         let input = decode_input(TEST);
         assert_eq!(152, part1(&input));
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(301, part2(&decode_input(TEST)));
     }
 
     const TEST: &str = r#"
