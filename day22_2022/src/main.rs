@@ -1,74 +1,337 @@
-#[derive(Debug)]
+use std::{cmp::max, fmt::Display};
+
+#[derive(Debug, PartialEq, Clone)]
 enum Tile {
     Wall,
     Path,
     None,
 }
 
+#[derive(Debug)]
 enum Move {
     Left,
     Right,
     Straight(usize),
 }
 
-fn decode_input(input: &str) -> (Vec<Vec<Tile>>, Vec<Move>) {
-    input
-        .split_terminator('\n')
-        .skip(1)
-        .fold((vec![], vec![]), |mut acc, l| {
-            if l.is_empty() && acc.1.len() == 0 {
-                acc.1.push(Move::Straight(0));
-            } else if !l.is_empty() {
-                if acc.1.len() > 0 {
-                    let bytes = l.as_bytes();
-                    let mut start_pos = None;
-                    for i in 0..acc.1.len() {
-                        match bytes[i] {
-                            b'R' => {
-                                if let Some(pos) = start_pos {
-                                    start_pos = None;
-                                    acc.1.push(Move::Straight(l[pos..i].parse().unwrap()));
-                                }
-                                acc.1.push(Move::Right);
-                            }
-                            b'L' => {
-                                if let Some(pos) = start_pos {
-                                    acc.1.push(Move::Straight(l[pos..i].parse().unwrap()));
-                                }
-                                acc.1.push(Move::Left);
-                            }
-                            b'0'..=b'9' => {
-                                if start_pos.is_none() {
-                                    start_pos = Some(i);
-                                }
-                            }
-                            _ => panic!("unexpected input"),
-                        }
-                    }
-                } else {
-                    acc.0.push(
-                        l.as_bytes()
-                            .iter()
-                            .map(|b| match b {
-                                b'#' => Tile::Wall,
-                                b'.' => Tile::Path,
-                                _ => Tile::None,
-                            })
-                            .collect::<Vec<_>>(),
-                    );
-                }
-            }
-            acc
-        })
+#[derive(Debug)]
+enum Facing {
+    Right,
+    Down,
+    Left,
+    Up,
 }
 
-fn part1(map: &[Vec<Tile>], path: &[Move]) -> usize {
-    0
+#[derive(Debug)]
+struct Dungeon {
+    map: Vec<Vec<Tile>>,
+    col: usize,
+    row: usize,
+    facing: Facing,
+    max_col: usize,
+}
+
+impl Dungeon {
+    fn new() -> Self {
+        Self {
+            map: vec![],
+            col: 0,
+            row: 0,
+            facing: Facing::Right,
+            max_col: 0,
+        }
+    }
+
+    fn push_map(&mut self, tiles: Vec<Tile>) {
+        self.max_col = max(self.max_col, tiles.len());
+        self.map.push(tiles);
+    }
+
+    fn set_start_position(&mut self) {
+        self.col = 0;
+        self.row = 0;
+        self.facing = Facing::Right;
+        while self.map[self.row][self.col] == Tile::None {
+            self.col += 1;
+        }
+    }
+
+    fn turn_left(&mut self) {
+        self.facing = match self.facing {
+            Facing::Right => Facing::Up,
+            Facing::Down => Facing::Right,
+            Facing::Left => Facing::Down,
+            Facing::Up => Facing::Left,
+        };
+    }
+
+    fn turn_right(&mut self) {
+        self.facing = match self.facing {
+            Facing::Right => Facing::Down,
+            Facing::Down => Facing::Left,
+            Facing::Left => Facing::Up,
+            Facing::Up => Facing::Right,
+        }
+    }
+
+    fn move_right(&mut self, mut steps: usize) {
+        while steps > 0 {
+            let do_wrap = if (self.col + 1) == self.map[self.row].len() {
+                true
+            } else {
+                match self.map[self.row][self.col + 1] {
+                    Tile::Wall => return,
+                    Tile::None => true,
+                    Tile::Path => {
+                        self.col += 1;
+                        steps -= 1;
+                        false
+                    }
+                }
+            };
+            if do_wrap {
+                let mut wrapped = 0;
+                while self.map[self.row][wrapped] == Tile::None {
+                    wrapped += 1;
+                }
+                match self.map[self.row][wrapped] {
+                    Tile::Wall => return,
+                    Tile::Path => {
+                        self.col = wrapped;
+                        steps -= 1;
+                    }
+                    Tile::None => panic!("inconsistent map input!"),
+                }
+            }
+        }
+    }
+
+    fn move_left(&mut self, mut steps: usize) {
+        while steps > 0 {
+            let do_wrap = if self.col == 0 {
+                true
+            } else {
+                match self.map[self.row][self.col - 1] {
+                    Tile::Wall => return,
+                    Tile::None => true,
+                    Tile::Path => {
+                        self.col -= 1;
+                        steps -= 1;
+                        false
+                    }
+                }
+            };
+            if do_wrap {
+                let mut wrapped = self.map[self.row].len() - 1;
+                while self.map[self.row][wrapped] == Tile::None {
+                    wrapped -= 1;
+                }
+                match self.map[self.row][wrapped] {
+                    Tile::Wall => return,
+                    Tile::Path => {
+                        self.col = wrapped;
+                        steps -= 1;
+                    }
+                    Tile::None => panic!("inconsistent map input!"),
+                }
+            }
+        }
+    }
+
+    fn move_down(&mut self, mut steps: usize) {
+        while steps > 0 {
+            let do_wrap =
+                if (self.row + 1) == self.map.len() || self.col >= self.map[self.row + 1].len() {
+                    true
+                } else {
+                    match self.map[self.row + 1][self.col] {
+                        Tile::Wall => return,
+                        Tile::None => true,
+                        Tile::Path => {
+                            self.row += 1;
+                            steps -= 1;
+                            false
+                        }
+                    }
+                };
+            if do_wrap {
+                let mut wrapped = 0;
+                while self.map[wrapped][self.col] == Tile::None {
+                    wrapped += 1;
+                }
+                match self.map[wrapped][self.col] {
+                    Tile::Wall => return,
+                    Tile::Path => {
+                        self.row = wrapped;
+                        steps -= 1;
+                    }
+                    Tile::None => panic!("inconsistent map input!"),
+                }
+            }
+        }
+    }
+
+    fn move_up(&mut self, mut steps: usize) {
+        while steps > 0 {
+            let do_wrap = if self.row == 0 {
+                true
+            } else {
+                match self.map[self.row - 1][self.col] {
+                    Tile::Wall => return,
+                    Tile::None => true,
+                    Tile::Path => {
+                        self.row -= 1;
+                        steps -= 1;
+                        false
+                    }
+                }
+            };
+            if do_wrap {
+                let mut wrapped = self.map.len() - 1;
+                while self.map[wrapped][self.col] == Tile::None {
+                    wrapped -= 1;
+                }
+                match self.map[wrapped][self.col] {
+                    Tile::Wall => return,
+                    Tile::Path => {
+                        self.row = wrapped;
+                        steps -= 1;
+                    }
+                    Tile::None => panic!("inconsistent map input!"),
+                }
+            }
+        }
+    }
+
+    fn execute_move(&mut self, next_move: &Move) {
+        match next_move {
+            Move::Right => self.turn_right(),
+            Move::Left => self.turn_left(),
+            Move::Straight(steps) => match self.facing {
+                Facing::Right => self.move_right(*steps),
+                Facing::Down => self.move_down(*steps),
+                Facing::Left => self.move_left(*steps),
+                Facing::Up => self.move_up(*steps),
+            },
+        }
+    }
+
+    fn get_password(&self) -> usize {
+        (1000 * (self.row + 1))
+            + (4 * (self.col + 1))
+            + match self.facing {
+                Facing::Right => 0,
+                Facing::Down => 1,
+                Facing::Left => 2,
+                Facing::Up => 3,
+            }
+    }
+}
+
+impl Display for Dungeon {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.map
+            .iter()
+            .enumerate()
+            .try_for_each(|(r, row)| -> std::fmt::Result {
+                row.iter()
+                    .enumerate()
+                    .try_for_each(|(c, col)| -> std::fmt::Result {
+                        if (r, c) == (self.row, self.col) {
+                            write!(
+                                f,
+                                "{}",
+                                match self.facing {
+                                    Facing::Right => ">",
+                                    Facing::Down => "v",
+                                    Facing::Left => "<",
+                                    Facing::Up => "^",
+                                }
+                            )?;
+                        } else {
+                            write!(
+                                f,
+                                "{}",
+                                match col {
+                                    Tile::None => " ",
+                                    Tile::Wall => "#",
+                                    Tile::Path => ".",
+                                }
+                            )?;
+                        }
+                        Ok(())
+                    })?;
+                writeln!(f)
+            })
+    }
+}
+
+fn decode_input(input: &str) -> (Dungeon, Vec<Move>) {
+    let input = input.split_terminator('\n').skip(1).collect::<Vec<_>>();
+    let max_size = input.iter().map(|l| l.len()).max().unwrap();
+    input.iter().fold((Dungeon::new(), vec![]), |mut acc, l| {
+        if l.is_empty() && acc.1.len() == 0 {
+            acc.1.push(Move::Straight(0));
+        } else if !l.is_empty() {
+            if acc.1.len() > 0 {
+                let bytes = l.as_bytes();
+                let mut start_pos = None;
+                for i in 0..bytes.len() {
+                    match bytes[i] {
+                        b'R' => {
+                            if let Some(pos) = start_pos {
+                                start_pos = None;
+                                acc.1.push(Move::Straight(l[pos..i].parse().unwrap()));
+                            }
+                            acc.1.push(Move::Right);
+                        }
+                        b'L' => {
+                            if let Some(pos) = start_pos {
+                                start_pos = None;
+                                acc.1.push(Move::Straight(l[pos..i].parse().unwrap()));
+                            }
+                            acc.1.push(Move::Left);
+                        }
+                        b'0'..=b'9' => {
+                            if start_pos.is_none() {
+                                start_pos = Some(i);
+                            }
+                        }
+                        _ => panic!("unexpected input"),
+                    }
+                }
+                if let Some(pos) = start_pos {
+                    acc.1.push(Move::Straight(l[pos..].parse().unwrap()));
+                }
+            } else {
+                let mut tiles = vec![Tile::None; max_size];
+                l.as_bytes().iter().enumerate().for_each(|(i, b)| {
+                    tiles[i] = match b {
+                        b'#' => Tile::Wall,
+                        b'.' => Tile::Path,
+                        _ => Tile::None,
+                    }
+                });
+                acc.0.push_map(tiles);
+            }
+        }
+        acc
+    })
+}
+
+fn part1(dungeon: &mut Dungeon, path: &[Move]) -> usize {
+    dungeon.set_start_position();
+    // println!("{dungeon}");
+    path.iter().for_each(|m| {
+        dungeon.execute_move(m);
+        // println!("{dungeon}");
+    });
+    dungeon.get_password()
 }
 
 fn main() {
-    let (map, path) = decode_input(INPUT);
-    println!("Part 1: {}", part1(&map, &path));
+    let (mut dungeon, path) = decode_input(INPUT);
+    println!("Part 1: {}", part1(&mut dungeon, &path));
     // println!("Part 2: {}", part1(&decode_input(INPUT)));
 }
 
@@ -78,8 +341,8 @@ mod test {
 
     #[test]
     fn test_part1() {
-        let (map, path) = decode_input(TEST);
-        assert_eq!(6032, part1(&map, &path));
+        let (mut dungeon, path) = decode_input(TEST);
+        assert_eq!(6032, part1(&mut dungeon, &path));
     }
 
     const TEST: &str = r#"
