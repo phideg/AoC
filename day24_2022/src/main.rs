@@ -10,7 +10,6 @@ enum Blizzard {
     Right,
     Top,
     Down,
-    None,
 }
 
 impl Display for Blizzard {
@@ -23,7 +22,6 @@ impl Display for Blizzard {
                 Blizzard::Right => ">",
                 Blizzard::Top => "^",
                 Blizzard::Down => "v",
-                Blizzard::None => ".",
             }
         )
     }
@@ -35,6 +33,7 @@ type BlizzardMap = HashMap<(usize, usize), Blizzard>;
 struct Valley {
     blizzards: BlizzardMap,
     tracks: Vec<((usize, usize), usize)>,
+    entry: (usize, usize),
     exit: (usize, usize),
     rows: usize,
     cols: usize,
@@ -45,8 +44,9 @@ impl Valley {
     fn new(rows: usize, cols: usize, entry: (usize, usize), exit: (usize, usize)) -> Self {
         Self {
             blizzards: BlizzardMap::new(),
-            tracks: vec![(entry, 0)],
-            exit: (exit.0 - 1, exit.1),
+            tracks: Vec::new(),
+            entry,
+            exit,
             rows,
             cols,
             minutes: 0,
@@ -104,68 +104,54 @@ impl Valley {
         blizzards
     }
 
-    fn exit_reached(&self) -> bool {
-        self.tracks.iter().all(|t| t.0 == self.exit)
-    }
-
-    fn try_move(&mut self) {
+    fn try_move(&mut self) -> usize {
         let mut removed = vec![];
         for s in 0..self.tracks.len() {
-            let pos = self.tracks[s];
-            if pos.0 == self.exit {
-                continue;
+            let ((row, col), minute) = self.tracks[s];
+            if (row, col) == self.exit {
+                return minute;
             }
             // check step above
-            if pos.0 .0 > 1
-                && self
-                    .get_blizzards_at((pos.0 .0 - 1, pos.0 .1), self.minutes)
-                    .len()
-                    == 0
-            {
-                self.tracks.push(((pos.0 .0 - 1, pos.0 .1), self.minutes));
+            if row > 1 && self.get_blizzards_at((row - 1, col), self.minutes).len() == 0 {
+                self.tracks.push(((row - 1, col), self.minutes));
             }
-            if pos.0 .0 < self.rows - 1
-                && self
-                    .get_blizzards_at((pos.0 .0 + 1, pos.0 .1), self.minutes)
-                    .len()
-                    == 0
+            // check step beneath
+            if row < self.rows - 1 && self.get_blizzards_at((row + 1, col), self.minutes).len() == 0
             {
-                self.tracks.push(((pos.0 .0 + 1, pos.0 .1), self.minutes));
+                self.tracks.push(((row + 1, col), self.minutes));
             }
-            if pos.0 .1 > 1
-                && self
-                    .get_blizzards_at((pos.0 .0, pos.0 .1 - 1), self.minutes)
-                    .len()
-                    == 0
+            // check step left
+            if col > 1 && self.get_blizzards_at((row, col - 1), self.minutes).len() == 0 {
+                self.tracks.push(((row, col - 1), self.minutes));
+            }
+            // check step right
+            if col < self.cols - 1 && self.get_blizzards_at((row, col + 1), self.minutes).len() == 0
             {
-                self.tracks.push(((pos.0 .0, pos.0 .1 - 1), self.minutes));
+                self.tracks.push(((row, col + 1), self.minutes));
             }
-            if pos.0 .1 < self.cols - 1
-                && self
-                    .get_blizzards_at((pos.0 .0, pos.0 .1 + 1), self.minutes)
-                    .len()
-                    == 0
-            {
-                self.tracks.push(((pos.0 .0, pos.0 .1 + 1), self.minutes));
-            }
-            if self.get_blizzards_at(pos.0, self.minutes + 1).len() > 0 {
+            // check to keep position
+            if self.get_blizzards_at((row, col), self.minutes + 1).len() == 0 {
+                self.tracks[s].1 = self.minutes;
+            } else {
                 removed.push(s);
             }
         }
-
-        for r in removed {
-            self.tracks.remove(r);
+        for r in removed.iter().rev() {
+            self.tracks.remove(*r);
         }
-    }
-
-    fn shortest_path(&self) -> usize {
-        self.tracks.iter().min_by(|a, b| a.1.cmp(&b.1)).unwrap().1
+        // check if new track can be started
+        if self.get_blizzards_at(self.entry, self.minutes).len() == 0 {
+            self.tracks.push((self.entry, self.minutes));
+        }
+        return 0;
     }
 }
 
 impl Display for Valley {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{:#<1$}", "", self.cols + 2)?;
         for r in 0..self.rows {
+            write!(f, "#")?;
             for c in 0..self.cols {
                 let blizzards = self.get_blizzards_at((r, c), self.minutes);
                 match blizzards.len() {
@@ -180,8 +166,10 @@ impl Display for Valley {
                     n => write!(f, "{}", n)?,
                 }
             }
+            write!(f, "#")?;
             writeln!(f)?;
         }
+        writeln!(f, "{:#<1$}", "", self.cols + 2)?;
         writeln!(f)
     }
 }
@@ -196,13 +184,14 @@ fn decode_input(input: &str) -> Valley {
     let mut valley = Valley::new(
         valley_rows,
         valley_cols,
-        (0, lines[0].chars().position(|c| c == '.').unwrap()),
+        (0, lines[0].chars().position(|c| c == '.').unwrap() - 1),
         (
-            lines.len() - 1,
+            lines.len() - 3,
             lines[lines.len() - 1]
                 .chars()
                 .position(|c| c == '.')
-                .unwrap(),
+                .unwrap()
+                - 1,
         ),
     );
     lines
@@ -230,12 +219,14 @@ fn decode_input(input: &str) -> Valley {
 
 fn part1(valley: &mut Valley) -> usize {
     println!("{valley}");
-    while !valley.exit_reached() {
+    let mut shortest_path = 0;
+    while shortest_path == 0 {
         valley.increment_minute();
-        valley.try_move();
-        println!("{valley}");
+        shortest_path = valley.try_move();
+        println!(" {},", valley.tracks.len());
+        // println!("{valley}");
     }
-    valley.shortest_path()
+    shortest_path + 1
 }
 
 fn main() {
