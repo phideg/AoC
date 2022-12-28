@@ -1,103 +1,183 @@
-use std::fmt::Display;
+#![feature(let_chains)]
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+};
 
-type Blizzard = Vec<Vec<u32>>;
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+enum Blizzard {
+    Left,
+    Right,
+    Top,
+    Down,
+    None,
+}
+
+impl Display for Blizzard {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Blizzard::Left => "<",
+                Blizzard::Right => ">",
+                Blizzard::Top => "^",
+                Blizzard::Down => "v",
+                Blizzard::None => ".",
+            }
+        )
+    }
+}
+
+type BlizzardMap = HashMap<(usize, usize), Blizzard>;
 
 #[derive(Debug)]
 struct Valley {
-    left: Blizzard,
-    right: Blizzard,
-    top: Blizzard,
-    down: Blizzard,
-    tracks: Vec<(usize, usize, usize)>,
-    entry: (usize, usize),
+    blizzards: BlizzardMap,
+    tracks: Vec<((usize, usize), usize)>,
     exit: (usize, usize),
+    rows: usize,
+    cols: usize,
+    minutes: usize,
 }
 
 impl Valley {
-    fn new(rows: usize, entry: (usize, usize), exit: (usize, usize)) -> Self {
+    fn new(rows: usize, cols: usize, entry: (usize, usize), exit: (usize, usize)) -> Self {
         Self {
-            left: Vec::with_capacity(rows),
-            right: Vec::with_capacity(rows),
-            top: Vec::with_capacity(rows),
-            down: Vec::with_capacity(rows),
-            tracks: Vec::new(),
-            entry,
-            exit,
+            blizzards: BlizzardMap::new(),
+            tracks: vec![(entry, 0)],
+            exit: (exit.0 - 1, exit.1),
+            rows,
+            cols,
+            minutes: 0,
         }
     }
 
-    fn push_blizzard_left(&mut self, blizzard: Vec<u32>) {
-        self.left.push(blizzard);
+    fn insert_blizzard(&mut self, pos: (usize, usize), blizzard: Blizzard) {
+        self.blizzards.insert(pos, blizzard);
     }
-    fn push_blizzard_right(&mut self, blizzard: Vec<u32>) {
-        self.right.push(blizzard);
+
+    fn increment_minute(&mut self) {
+        self.minutes += 1;
     }
-    fn push_blizzard_top(&mut self, blizzard: Vec<u32>) {
-        self.top.push(blizzard);
+
+    fn get_blizzards_at(&self, pos: (usize, usize), minute: usize) -> HashSet<Blizzard> {
+        let mut blizzards = HashSet::new();
+        let cols_remainder = minute % self.cols;
+        let rows_remainder = minute % self.rows;
+        // search for blizzard from left
+        let orig_left_col = if pos.1 >= cols_remainder {
+            pos.1 - cols_remainder
+        } else {
+            self.cols - (cols_remainder - pos.1)
+        };
+        if let Some(blizzard) = self.blizzards.get(&(pos.0, orig_left_col)) && *blizzard == Blizzard::Right{
+            blizzards.insert(blizzard.clone());
+        }
+        // search for blizzards from right
+        let orig_right_col = if pos.1 + cols_remainder < self.cols {
+            pos.1 + cols_remainder
+        } else {
+            cols_remainder - (self.cols - pos.1)
+        };
+        if let Some(blizzard) = self.blizzards.get(&(pos.0, orig_right_col)) && *blizzard == Blizzard::Left {
+            blizzards.insert(blizzard.clone());
+        }
+        // search for blizzard from top
+        let orig_top_row = if pos.0 >= rows_remainder {
+            pos.0 - rows_remainder
+        } else {
+            self.rows - (rows_remainder - pos.0)
+        };
+        if let Some(blizzard) = self.blizzards.get(&(orig_top_row, pos.1)) && *blizzard == Blizzard::Down {
+            blizzards.insert(blizzard.clone());
+        }
+        // search for blizzard from bottom
+        let orig_down_row = if pos.0 + rows_remainder < self.rows {
+            pos.0 + rows_remainder
+        } else {
+            rows_remainder - (self.rows - pos.0)
+        };
+        if let Some(blizzard) = self.blizzards.get(&(orig_down_row, pos.1)) && *blizzard == Blizzard::Top {
+            blizzards.insert(blizzard.clone());
+        }
+        blizzards
     }
-    fn push_blizzard_down(&mut self, blizzard: Vec<u32>) {
-        self.down.push(blizzard);
+
+    fn exit_reached(&self) -> bool {
+        self.tracks.iter().all(|t| t.0 == self.exit)
     }
-    fn increment_minute() {}
+
+    fn try_move(&mut self) {
+        let mut removed = vec![];
+        for s in 0..self.tracks.len() {
+            let pos = self.tracks[s];
+            if pos.0 == self.exit {
+                continue;
+            }
+            // check step above
+            if pos.0 .0 > 1
+                && self
+                    .get_blizzards_at((pos.0 .0 - 1, pos.0 .1), self.minutes)
+                    .len()
+                    == 0
+            {
+                self.tracks.push(((pos.0 .0 - 1, pos.0 .1), self.minutes));
+            }
+            if pos.0 .0 < self.rows - 1
+                && self
+                    .get_blizzards_at((pos.0 .0 + 1, pos.0 .1), self.minutes)
+                    .len()
+                    == 0
+            {
+                self.tracks.push(((pos.0 .0 + 1, pos.0 .1), self.minutes));
+            }
+            if pos.0 .1 > 1
+                && self
+                    .get_blizzards_at((pos.0 .0, pos.0 .1 - 1), self.minutes)
+                    .len()
+                    == 0
+            {
+                self.tracks.push(((pos.0 .0, pos.0 .1 - 1), self.minutes));
+            }
+            if pos.0 .1 < self.cols - 1
+                && self
+                    .get_blizzards_at((pos.0 .0, pos.0 .1 + 1), self.minutes)
+                    .len()
+                    == 0
+            {
+                self.tracks.push(((pos.0 .0, pos.0 .1 + 1), self.minutes));
+            }
+            if self.get_blizzards_at(pos.0, self.minutes + 1).len() > 0 {
+                removed.push(s);
+            }
+        }
+
+        for r in removed {
+            self.tracks.remove(r);
+        }
+    }
+
+    fn shortest_path(&self) -> usize {
+        self.tracks.iter().min_by(|a, b| a.1.cmp(&b.1)).unwrap().1
+    }
 }
 
 impl Display for Valley {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for r in 0..self.left.len() {
-            for c in 0..self.left[r].len() {
-                match (
-                    self.left[r][c],
-                    self.right[r][c],
-                    self.down[r][c],
-                    self.top[r][c],
-                ) {
-                    (l, 0, 0, 0) => {
-                        write!(
-                            f,
-                            "{}",
-                            if l == 1 {
-                                "<".to_string()
-                            } else {
-                                l.to_string()
-                            }
-                        )?;
+        for r in 0..self.rows {
+            for c in 0..self.cols {
+                let blizzards = self.get_blizzards_at((r, c), self.minutes);
+                match blizzards.len() {
+                    0 => {
+                        if self.tracks.iter().any(|t| t.0 == (r, c)) {
+                            write!(f, "E")?
+                        } else {
+                            write!(f, ".")?
+                        }
                     }
-                    (0, r, 0, 0) => {
-                        write!(
-                            f,
-                            "{}",
-                            if r == 1 {
-                                ">".to_string()
-                            } else {
-                                r.to_string()
-                            }
-                        )?;
-                    }
-                    (0, 0, d, 0) => {
-                        write!(
-                            f,
-                            "{}",
-                            if d == 1 {
-                                "v".to_string()
-                            } else {
-                                d.to_string()
-                            }
-                        )?;
-                    }
-                    (0, 0, 0, t) => {
-                        write!(
-                            f,
-                            "{}",
-                            if t == 1 {
-                                "^".to_string()
-                            } else {
-                                t.to_string()
-                            }
-                        )?;
-                    }
-                    _ => {
-                        write!(f, ".")?;
-                    }
+                    1 => blizzards.iter().next().unwrap().fmt(f)?,
+                    n => write!(f, "{}", n)?,
                 }
             }
             writeln!(f)?;
@@ -115,75 +195,51 @@ fn decode_input(input: &str) -> Valley {
     let valley_cols = lines[0].len() - 2;
     let mut valley = Valley::new(
         valley_rows,
-        (lines[0].chars().position(|c| c == '.').unwrap(), 0),
+        valley_cols,
+        (0, lines[0].chars().position(|c| c == '.').unwrap()),
         (
+            lines.len() - 1,
             lines[lines.len() - 1]
                 .chars()
-                .position(|c| c == ' ')
+                .position(|c| c == '.')
                 .unwrap(),
-            0,
         ),
     );
-    lines.iter().skip(1).take(valley_rows).for_each(|row| {
-        valley.push_blizzard_right(
+    lines
+        .iter()
+        .skip(1)
+        .take(valley_rows)
+        .enumerate()
+        .for_each(|(r, row)| {
             row.as_bytes()
                 .iter()
                 .skip(1)
                 .take(valley_cols)
                 .enumerate()
-                .filter(|(_, &b)| b == b'>')
-                .fold(vec![0; valley_cols], |mut acc, (i, _)| {
-                    acc[i] += 1;
-                    acc
-                }),
-        );
-        valley.push_blizzard_left(
-            row.as_bytes()
-                .iter()
-                .skip(1)
-                .take(valley_cols)
-                .enumerate()
-                .filter(|(_, &b)| b == b'<')
-                .fold(vec![0; valley_cols], |mut acc, (i, _)| {
-                    acc[i] += 1;
-                    acc
-                }),
-        );
-        valley.push_blizzard_top(
-            row.as_bytes()
-                .iter()
-                .skip(1)
-                .take(valley_cols)
-                .enumerate()
-                .filter(|(_, &b)| b == b'^')
-                .fold(vec![0; valley_cols], |mut acc, (i, _)| {
-                    acc[i] += 1;
-                    acc
-                }),
-        );
-        valley.push_blizzard_down(
-            row.as_bytes()
-                .iter()
-                .skip(1)
-                .take(valley_cols)
-                .enumerate()
-                .filter(|(_, &b)| b == b'v')
-                .fold(vec![0; valley_cols], |mut acc, (i, _)| {
-                    acc[i] += 1;
-                    acc
-                }),
-        );
-    });
-    println!("{valley}");
+                .filter(|(_, &b)| b != b'.')
+                .for_each(|(c, col)| match col {
+                    b'<' => valley.insert_blizzard((r, c), Blizzard::Left),
+                    b'>' => valley.insert_blizzard((r, c), Blizzard::Right),
+                    b'^' => valley.insert_blizzard((r, c), Blizzard::Top),
+                    b'v' => valley.insert_blizzard((r, c), Blizzard::Down),
+                    _ => panic!("unexpected input"),
+                });
+        });
     valley
 }
 
-fn part1(input: &Valley) -> usize {
-    0
+fn part1(valley: &mut Valley) -> usize {
+    println!("{valley}");
+    while !valley.exit_reached() {
+        valley.increment_minute();
+        valley.try_move();
+        println!("{valley}");
+    }
+    valley.shortest_path()
 }
 
 fn main() {
-    println!("Part 1: {}", part1(&decode_input(INPUT)));
+    println!("Part 1: {}", part1(&mut decode_input(INPUT)));
 }
 
 #[cfg(test)]
@@ -192,17 +248,16 @@ mod test {
 
     #[test]
     fn test_part1() {
-        assert_eq!(3, part1(&decode_input(TEST)));
+        assert_eq!(18, part1(&mut decode_input(TEST)));
     }
 
     const TEST: &str = r#"
-#.#####
-#.....#
-#>....#
-#.....#
-#...v.#
-#.....#
-#####.#    
+#.######
+#>>.<^<#
+#.<..<<#
+#>v.><>#
+#<^v^^>#
+######.#
 "#;
 }
 

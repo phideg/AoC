@@ -329,10 +329,14 @@ fn part1(dungeon: &mut Dungeon, path: &[Move]) -> usize {
     dungeon.get_password()
 }
 
+fn part2(dungeon: &mut Dungeon, path: &[Move]) -> usize {
+    0
+}
+
 fn main() {
     let (mut dungeon, path) = decode_input(INPUT);
     println!("Part 1: {}", part1(&mut dungeon, &path));
-    // println!("Part 2: {}", part1(&decode_input(INPUT)));
+    println!("Part 2: {}", part2(&mut dungeon, &path));
 }
 
 #[cfg(test)]
