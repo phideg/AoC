@@ -106,31 +106,19 @@ impl Valley {
 
     fn try_move(&mut self) -> usize {
         let mut new_tracks = HashMap::new();
-        for (&(row, col), &minute) in self.tracks.iter() {
-            if (row, col) == self.exit {
+        for (pos, &minute) in self.tracks.iter() {
+            if *pos == self.exit {
                 return minute;
             }
-            // check step above
-            if row > 1 && self.get_blizzards_at((row - 1, col), self.minutes).len() == 0 {
-                new_tracks.insert((row - 1, col), self.minutes);
-            }
-            // check step beneath
-            if row < self.rows - 1 && self.get_blizzards_at((row + 1, col), self.minutes).len() == 0
-            {
-                new_tracks.insert((row + 1, col), self.minutes);
-            }
-            // check step left
-            if col > 1 && self.get_blizzards_at((row, col - 1), self.minutes).len() == 0 {
-                new_tracks.insert((row, col - 1), self.minutes);
-            }
-            // check step right
-            if col < self.cols - 1 && self.get_blizzards_at((row, col + 1), self.minutes).len() == 0
-            {
-                new_tracks.insert((row, col + 1), self.minutes);
-            }
-            // check to keep position
-            if self.get_blizzards_at((row, col), self.minutes + 1).len() == 0 {
-                new_tracks.insert((row, col), self.minutes);
+            for delta in [(-1, 0), (1, 0), (0, 0), (0, 1), (0, -1)] {
+                let Some(row) = pos.0.checked_add_signed(delta.0) else { continue; };
+                let Some(col) = pos.1.checked_add_signed(delta.1) else { continue; };
+                if !(row < self.rows && col < self.cols) {
+                    continue;
+                }
+                if self.get_blizzards_at((row, col), self.minutes).len() == 0 {
+                    new_tracks.insert((row, col), self.minutes);
+                }
             }
         }
         // check if new track can be started
@@ -139,6 +127,16 @@ impl Valley {
         }
         self.tracks = new_tracks;
         return 0;
+    }
+
+    fn reset_tracks(&mut self) {
+        self.tracks.clear();
+    }
+
+    fn swap_entry_and_exit(&mut self) {
+        let entry = self.entry;
+        self.entry = self.exit;
+        self.exit = entry;
     }
 }
 
@@ -206,7 +204,7 @@ fn decode_input(input: &str) -> Valley {
                     b'>' => valley.insert_blizzard((r, c), Blizzard::Right),
                     b'^' => valley.insert_blizzard((r, c), Blizzard::Top),
                     b'v' => valley.insert_blizzard((r, c), Blizzard::Down),
-                    _ => panic!("unexpected input"),
+                    _ => panic!("unexpected input {}", String::from_utf8_lossy(&[*col])),
                 });
         });
     valley
@@ -220,20 +218,36 @@ fn part1(valley: &mut Valley) -> usize {
         shortest_path = valley.try_move();
         // println!("{valley}");
     }
-    shortest_path + 1
+    dbg!(shortest_path + 1)
+}
+
+fn part2(valley: &mut Valley) -> usize {
+    let mut shortest_path = part1(valley);
+    for _ in 0..2 {
+        valley.reset_tracks();
+        valley.swap_entry_and_exit();
+        shortest_path += part1(valley);
+    }
+    shortest_path
 }
 
 fn main() {
     println!("Part 1: {}", part1(&mut decode_input(INPUT)));
+    println!("Part 2: {}", part2(&mut decode_input(INPUT)));
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{decode_input, part1};
+    use crate::{decode_input, part1, part2};
 
     #[test]
     fn test_part1() {
         assert_eq!(18, part1(&mut decode_input(TEST)));
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(54, part2(&mut decode_input(TEST)));
     }
 
     const TEST: &str = r#"
