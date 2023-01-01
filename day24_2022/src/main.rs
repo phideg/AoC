@@ -218,7 +218,7 @@ fn part1(valley: &mut Valley) -> usize {
         shortest_path = valley.try_move();
         // println!("{valley}");
     }
-    dbg!(shortest_path + 1)
+    shortest_path + 1
 }
 
 fn part2(valley: &mut Valley) -> usize {
@@ -226,7 +226,7 @@ fn part2(valley: &mut Valley) -> usize {
     for _ in 0..2 {
         valley.reset_tracks();
         valley.swap_entry_and_exit();
-        shortest_path += part1(valley);
+        shortest_path = part1(valley);
     }
     shortest_path
 }
