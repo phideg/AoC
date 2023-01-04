@@ -1,22 +1,77 @@
-fn part1(valley: &mut Valley) -> usize {
-    println!("{valley}");
-    let mut shortest_path = 0;
-    while shortest_path == 0 {
-        valley.increment_minute();
-        shortest_path = valley.try_move();
-        // println!("{valley}");
-    }
-    shortest_path + 1
+#![feature(iter_array_chunks)]
+#[derive(Debug)]
+enum Operand {
+    Value(usize),
+    Variable,
 }
 
-fn part2(valley: &mut Valley) -> usize {
-    let mut shortest_path = part1(valley);
-    for _ in 0..2 {
-        valley.reset_tracks();
-        valley.swap_entry_and_exit();
-        shortest_path = part1(valley);
-    }
-    shortest_path
+#[derive(Debug)]
+enum Operation {
+    Add(Operand, Operand),
+    Mul(Operand, Operand),
+}
+
+#[derive(Debug)]
+struct Monkey {
+    items: Vec<usize>,
+    operation: Operation,
+    test: (usize, usize, usize),
+}
+
+fn decode_input(input: &str) -> Vec<Monkey> {
+    input
+        .split_terminator('\n')
+        .filter(|l| !l.is_empty())
+        .array_chunks()
+        .map(|[_, items, operation, test, if_true, if_false]| {
+            let items = items
+                .split_terminator(':')
+                .last()
+                .unwrap()
+                .split_terminator(',')
+                .map(|n| n.trim().parse().unwrap())
+                .collect::<Vec<usize>>();
+            let operation = operation
+                .split_terminator('=')
+                .last()
+                .unwrap()
+                .split_whitespace()
+                .array_chunks()
+                .map(|[operand1, operation, operand2]| {
+                    let operand1 = operand1
+                        .parse()
+                        .map_or(Operand::Variable, |v| Operand::Value(v));
+                    let operand2 = operand2
+                        .parse()
+                        .map_or(Operand::Variable, |v| Operand::Value(v));
+                    match operation {
+                        "+" => Operation::Add(operand1, operand2),
+                        "*" => Operation::Add(operand1, operand2),
+                        _ => panic!("Unexpected input {operand1:?}, {operation}, {operand2:?}"),
+                    }
+                })
+                .last()
+                .unwrap();
+            let test = (
+                test.split_whitespace().last().unwrap().parse().unwrap(),
+                if_true.split_whitespace().last().unwrap().parse().unwrap(),
+                if_false.split_whitespace().last().unwrap().parse().unwrap(),
+            );
+            Monkey {
+                items,
+                operation,
+                test,
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+fn part1(input: &[Monkey]) -> usize {
+    0
+}
+
+fn part2(valley: &[Monkey]) -> usize {
+    0
 }
 
 fn main() {
@@ -30,7 +85,7 @@ mod test {
 
     #[test]
     fn test_part1() {
-        assert_eq!(18, part1(&mut decode_input(TEST)));
+        assert_eq!(18, part1(dbg!(&mut decode_input(TEST))));
     }
 
     #[test]
