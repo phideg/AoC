@@ -1,4 +1,4 @@
---- Day 11: Monkey in the Middle ---
+# --- Day 11: Monkey in the Middle ---
 
 As you finally start making your way upriver, you realize your pack is much lighter than you remember. Just then, one of the items from your pack goes flying overhead. Monkeys are playing Keep Away with your missing things!
 
@@ -217,7 +217,7 @@ In this example, the two most active monkeys inspected items 101 and 105 times. 
 
 Figure out which monkeys to chase by counting how many items they inspect over 20 rounds. What is the level of monkey business after 20 rounds of stuff-slinging simian shenanigans?
 
---- Part Two ---
+## --- Part Two ---
 
 You're worried you might not ever get your items back. So worried, in fact, that your relief that a monkey's inspection didn't damage an item no longer causes your worry level to be divided by three.
 

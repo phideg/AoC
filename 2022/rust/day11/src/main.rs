@@ -1,17 +1,17 @@
 #![feature(iter_array_chunks)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Operand {
     Value(usize),
     Variable,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Operation {
     Add(Operand, Operand),
     Mul(Operand, Operand),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Monkey {
     items: Vec<usize>,
     operation: Operation,
@@ -66,51 +66,66 @@ fn decode_input(input: &str) -> Vec<Monkey> {
         .collect::<Vec<_>>()
 }
 
-fn part1(input: &mut [Monkey]) -> usize {
-    let mut counts = vec![0; input.len()];
-    for _ in 0..20 {
-        for m in 0..input.len() {
-            counts[m] += input[m].items.len();
-            while input[m].items.len() > 0 {
-                let mut worry_level = input[m].items.remove(0);
-                worry_level = match input[m].operation {
-                    Operation::Add(Operand::Value(v1), Operand::Value(v2)) => v1 + v2,
-                    Operation::Add(Operand::Value(v), Operand::Variable) => v + worry_level,
-                    Operation::Add(Operand::Variable, Operand::Value(v)) => worry_level + v,
-                    Operation::Add(Operand::Variable, Operand::Variable) => {
-                        worry_level + worry_level
-                    }
-                    Operation::Mul(Operand::Value(v1), Operand::Value(v2)) => v1 * v2,
-                    Operation::Mul(Operand::Value(v), Operand::Variable) => v * worry_level,
-                    Operation::Mul(Operand::Variable, Operand::Value(v)) => worry_level * v,
-                    Operation::Mul(Operand::Variable, Operand::Variable) => {
-                        worry_level * worry_level
-                    }
-                };
-                worry_level /= 3;
-                let test = input[m].test;
+fn apply_operation_to_worry_level(operation: &Operation, worry_level: &usize) -> usize {
+    match operation {
+        Operation::Add(Operand::Value(v1), Operand::Value(v2)) => v1 + v2,
+        Operation::Add(Operand::Value(v), Operand::Variable) => v + worry_level,
+        Operation::Add(Operand::Variable, Operand::Value(v)) => worry_level + v,
+        Operation::Add(Operand::Variable, Operand::Variable) => worry_level + worry_level,
+        Operation::Mul(Operand::Value(v1), Operand::Value(v2)) => v1 * v2,
+        Operation::Mul(Operand::Value(v), Operand::Variable) => v * worry_level,
+        Operation::Mul(Operand::Variable, Operand::Value(v)) => worry_level * v,
+        Operation::Mul(Operand::Variable, Operand::Variable) => worry_level * worry_level,
+    }
+}
+
+fn run_inspection(
+    monkeys: &mut [Monkey],
+    rounds: usize,
+    adapt_wlevel: impl Fn(usize) -> usize,
+) -> usize {
+    let mut counts = vec![0; monkeys.len()];
+    for r in 0..rounds {
+        for m in 0..monkeys.len() {
+            counts[m] += monkeys[m].items.len();
+            while monkeys[m].items.len() > 0 {
+                let mut worry_level = monkeys[m].items.remove(0);
+                worry_level = adapt_wlevel(apply_operation_to_worry_level(
+                    &monkeys[m].operation,
+                    &worry_level,
+                ));
+                let test = monkeys[m].test;
                 if worry_level % test.0 == 0 {
-                    input[test.1].items.push(worry_level);
+                    monkeys[test.1].items.push(worry_level);
                 } else {
-                    input[test.2].items.push(worry_level);
+                    monkeys[test.2].items.push(worry_level);
                 }
             }
         }
-        // println!();
-        // input.iter().for_each(|m| println!("{:?}", m.items));
+        if r == 999 || r == 19 || r == 0 {
+            println!();
+            dbg!(&counts);
+            monkeys.iter().for_each(|m| println!("{:?}", m.items));
+        }
     }
     dbg!(&counts);
     counts.sort();
     counts[counts.len() - 1] * counts[counts.len() - 2]
 }
 
-fn part2(valley: &[Monkey]) -> usize {
-    0
+fn part1(input: &mut [Monkey]) -> usize {
+    run_inspection(input, 20, |wl| wl / 3)
+}
+
+fn part2(input: &mut [Monkey]) -> usize {
+    let cdn = input.iter().fold(1_usize, |acc, m| acc * m.test.0);
+    run_inspection(input, 10000, |wl| wl % cdn)
 }
 
 fn main() {
-    println!("Part 1: {}", part1(&mut decode_input(INPUT)));
-    println!("Part 2: {}", part2(&mut decode_input(INPUT)));
+    let mut input = decode_input(INPUT);
+    println!("Part 1: {}", part1(&mut input.clone()));
+    println!("Part 2: {}", part2(&mut input));
 }
 
 #[cfg(test)]
@@ -124,7 +139,7 @@ mod test {
 
     #[test]
     fn test_part2() {
-        assert_eq!(54, part2(&mut decode_input(TEST)));
+        assert_eq!(2713310158, part2(&mut decode_input(TEST)));
     }
 
     const TEST: &str = r#"
