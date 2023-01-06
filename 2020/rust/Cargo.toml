@@ -1,0 +1,14 @@
+[workspace]
+
+members = [
+    "day1",
+    "day2",
+]
+
+[workspace.package]
+authors = ["Philipp Degler"]
+description = "My solution of the Advent of Code"
+
+[workspace.dependencies]
+regex = "1"
+rayon = "1"
