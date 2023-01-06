@@ -46,7 +46,7 @@ fn decode_input(input: &str) -> Vec<Monkey> {
                         .map_or(Operand::Variable, |v| Operand::Value(v));
                     match operation {
                         "+" => Operation::Add(operand1, operand2),
-                        "*" => Operation::Add(operand1, operand2),
+                        "*" => Operation::Mul(operand1, operand2),
                         _ => panic!("Unexpected input {operand1:?}, {operation}, {operand2:?}"),
                     }
                 })
@@ -66,8 +66,42 @@ fn decode_input(input: &str) -> Vec<Monkey> {
         .collect::<Vec<_>>()
 }
 
-fn part1(input: &[Monkey]) -> usize {
-    0
+fn part1(input: &mut [Monkey]) -> usize {
+    let mut counts = vec![0; input.len()];
+    for _ in 0..20 {
+        for m in 0..input.len() {
+            counts[m] += input[m].items.len();
+            while input[m].items.len() > 0 {
+                let mut worry_level = input[m].items.remove(0);
+                worry_level = match input[m].operation {
+                    Operation::Add(Operand::Value(v1), Operand::Value(v2)) => v1 + v2,
+                    Operation::Add(Operand::Value(v), Operand::Variable) => v + worry_level,
+                    Operation::Add(Operand::Variable, Operand::Value(v)) => worry_level + v,
+                    Operation::Add(Operand::Variable, Operand::Variable) => {
+                        worry_level + worry_level
+                    }
+                    Operation::Mul(Operand::Value(v1), Operand::Value(v2)) => v1 * v2,
+                    Operation::Mul(Operand::Value(v), Operand::Variable) => v * worry_level,
+                    Operation::Mul(Operand::Variable, Operand::Value(v)) => worry_level * v,
+                    Operation::Mul(Operand::Variable, Operand::Variable) => {
+                        worry_level * worry_level
+                    }
+                };
+                worry_level /= 3;
+                let test = input[m].test;
+                if worry_level % test.0 == 0 {
+                    input[test.1].items.push(worry_level);
+                } else {
+                    input[test.2].items.push(worry_level);
+                }
+            }
+        }
+        // println!();
+        // input.iter().for_each(|m| println!("{:?}", m.items));
+    }
+    dbg!(&counts);
+    counts.sort();
+    counts[counts.len() - 1] * counts[counts.len() - 2]
 }
 
 fn part2(valley: &[Monkey]) -> usize {
@@ -85,7 +119,7 @@ mod test {
 
     #[test]
     fn test_part1() {
-        assert_eq!(18, part1(dbg!(&mut decode_input(TEST))));
+        assert_eq!(10605, part1(&mut decode_input(TEST)));
     }
 
     #[test]
