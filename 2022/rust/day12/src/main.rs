@@ -38,47 +38,69 @@ fn decode_input(input: &str) -> Grid {
         })
 }
 
+fn follow_plateau(
+    input: &Grid,
+    cur_grid_val: u8,
+    row: usize,
+    col: usize,
+    delta: &(isize, isize),
+) -> Option<(u8, usize, usize)> {
+    let mut y = row.checked_add_signed(delta.0)?;
+    let mut x = col.checked_add_signed(delta.1)?;
+    while y < input.height() && x < input.width {
+        let val = input.at(y, x);
+        if val == cur_grid_val {
+            let Some(next_y) = y.checked_add_signed(delta.0) else { break; };
+            let Some(next_x) = x.checked_add_signed(delta.1) else { break; };
+            y = next_y;
+            x = next_x;
+        } else {
+            return Some((val, y, x));
+        }
+    }
+    None
+}
+
 fn part1(input: &Grid) -> usize {
-    let mut tracks = vec![vec![input.start()]];
+    let mut tracks = Vec::from([vec![input.start()]]);
     let mut steps = 0_usize;
     loop {
         let mut new_tracks = Vec::new();
-        let mut new_positions = HashSet::new();
-        println!("Tracks: {}", tracks.len());
+        let mut known_pos = HashSet::new();
+        // println!("Tracks: {}", tracks.len());
         for track in tracks {
             let &(row, col) = track.last().unwrap();
             let cur_grid_val = input.at(row, col);
             if cur_grid_val == b'E' {
                 return steps;
+            } else if !known_pos.insert((row, col)) {
+                continue;
             }
-            for (dy, dx) in [(-1, 0), (1, 0), (0, 1), (0, -1)] {
-                let Some(y) = row.checked_add_signed(dy) else { continue; };
-                let Some(x) = col.checked_add_signed(dx) else { continue; };
-                if y < input.height()
-                    && x < input.width
-                    && new_positions.insert((y, x))
-                    && !track.contains(&(y, x))
+            for delta in [(-1, 0), (1, 0), (0, 1), (0, -1)] {
+                let Some((new_grid_value, y, x)) =
+                    follow_plateau(input, cur_grid_val, row, col, &delta) else { continue; };
+                assert!(cur_grid_val != new_grid_value);
+                if cur_grid_val + 1 == new_grid_value
+                    || cur_grid_val
+                        .checked_add_signed(-1)
+                        .map(|v| v == new_grid_value)
+                        .unwrap_or(false)
+                    || ((cur_grid_val + 1 == b'z' || cur_grid_val == b'z')
+                        && new_grid_value == b'E')
+                    || (cur_grid_val == b'S' && new_grid_value == b'a')
                 {
-                    let new_grid_value = input.at(y, x);
-                    if cur_grid_val == new_grid_value
-                        || cur_grid_val + 1 == new_grid_value
-                        || ((cur_grid_val + 1 == b'z' || cur_grid_val == b'z')
-                            && new_grid_value == b'E')
-                        || (cur_grid_val == b'S' && new_grid_value == b'a')
-                    {
-                        let mut new_track = track.clone();
-                        new_track.push((y, x));
-                        new_tracks.push(new_track);
-                    }
+                    let mut new_track = Vec::from_iter(track.iter().rev().cloned().take(3));
+                    new_track.push((y, x));
+                    new_tracks.push(new_track);
                 }
             }
         }
         assert!(!new_tracks.is_empty());
         steps += 1;
-        new_tracks.iter().for_each(|v| {
-            v.iter().for_each(|c| print!("{c:?}"));
-            println!();
-        });
+        // new_tracks.iter().for_each(|v| {
+        //     v.iter().for_each(|c| print!("{c:?}"));
+        //     println!();
+        // });
         tracks = new_tracks;
     }
 }
