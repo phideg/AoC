@@ -1,21 +1,36 @@
-use std::collections::HashSet;
+use pathfinding::prelude::astar;
+
+#[derive(Clone, Debug, Hash, Eq, PartialEq, PartialOrd)]
+struct Node {
+    y: usize,
+    x: usize,
+}
+
+impl Node {
+    fn new(y: usize, x: usize) -> Self {
+        Self { y, x }
+    }
+}
 
 struct Grid {
     cells: Vec<u8>,
     width: usize,
+    start: Node,
+    goal: Node,
 }
 
 impl Grid {
-    fn new() -> Self {
+    fn new(cells: Vec<u8>, width: usize) -> Self {
+        let pos = cells.iter().position(|c| *c == b'S').unwrap();
+        let start = Node::new(pos / width, pos % width);
+        let pos = cells.iter().position(|c| *c == b'E').unwrap();
+        let goal = Node::new(pos / width, pos % width);
         Grid {
-            cells: Vec::new(),
-            width: 0,
+            cells,
+            width,
+            start,
+            goal,
         }
-    }
-
-    fn start(&self) -> (usize, usize) {
-        let pos = self.cells.iter().position(|c| *c == b'S').unwrap();
-        (pos / self.width, pos % self.width)
     }
 
     fn at(&self, row: usize, col: usize) -> u8 {
@@ -25,62 +40,64 @@ impl Grid {
     fn height(&self) -> usize {
         self.cells.len() / self.width
     }
-}
 
-fn decode_input(input: &str) -> Grid {
-    input
-        .split_terminator('\n')
-        .filter(|l| !l.is_empty())
-        .fold(Grid::new(), |mut acc, l| {
-            acc.cells.extend(l.bytes());
-            acc.width = l.len();
-            acc
-        })
-}
+    fn manhatten_distance(&self, node: &Node) -> usize {
+        self.goal.y.abs_diff(node.y) + self.goal.x.abs_diff(node.x)
+    }
 
-fn part1(input: &Grid) -> usize {
-    let mut tracks = vec![vec![input.start()]];
-    let mut steps = 0_usize;
-    loop {
-        let mut new_tracks = Vec::new();
-        let mut new_positions = HashSet::new();
-        println!("Tracks: {}", tracks.len());
-        for track in tracks {
-            let &(row, col) = track.last().unwrap();
-            let cur_grid_val = input.at(row, col);
-            if cur_grid_val == b'E' {
-                return steps;
-            }
-            for (dy, dx) in [(-1, 0), (1, 0), (0, 1), (0, -1)] {
-                let Some(y) = row.checked_add_signed(dy) else { continue; };
-                let Some(x) = col.checked_add_signed(dx) else { continue; };
-                if y < input.height()
-                    && x < input.width
-                    && new_positions.insert((y, x))
-                    && !track.contains(&(y, x))
+    fn neighbors(&self, node: &Node) -> Vec<(Node, usize)> {
+        let cur_grid_val = self.at(node.y, node.x);
+        let mut neighbors = vec![];
+        for (dy, dx) in [(-1, 0), (1, 0), (0, 1), (0, -1)] {
+            let Some(y) = node.y.checked_add_signed(dy) else { continue; };
+            let Some(x) = node.x.checked_add_signed(dx) else { continue; };
+            if y < self.height() && x < self.width {
+                let new_grid_value = self.at(y, x);
+                if cur_grid_val == new_grid_value
+                    || cur_grid_val + 1 == new_grid_value
+                    || cur_grid_val - 1 == new_grid_value
+                    || ((cur_grid_val + 1 == b'z' || cur_grid_val == b'z')
+                        && new_grid_value == b'E')
+                    || (cur_grid_val == b'S' && new_grid_value == b'a')
                 {
-                    let new_grid_value = input.at(y, x);
-                    if cur_grid_val == new_grid_value
-                        || cur_grid_val + 1 == new_grid_value
-                        || ((cur_grid_val + 1 == b'z' || cur_grid_val == b'z')
-                            && new_grid_value == b'E')
-                        || (cur_grid_val == b'S' && new_grid_value == b'a')
-                    {
-                        let mut new_track = track.clone();
-                        new_track.push((y, x));
-                        new_tracks.push(new_track);
-                    }
+                    println!("{}", String::from_utf8_lossy(&[new_grid_value]));
+                    neighbors.push((Node::new(y, x), 1));
                 }
             }
         }
-        assert!(!new_tracks.is_empty());
-        steps += 1;
-        new_tracks.iter().for_each(|v| {
-            v.iter().for_each(|c| print!("{c:?}"));
-            println!();
-        });
-        tracks = new_tracks;
+        neighbors
     }
+}
+
+fn decode_input(input: &str) -> Grid {
+    let (cells, width) = input.split_terminator('\n').filter(|l| !l.is_empty()).fold(
+        (Vec::new(), 0),
+        |mut acc, l| {
+            acc.0.extend(l.bytes());
+            acc.1 = l.len();
+            acc
+        },
+    );
+    Grid::new(cells, width)
+}
+
+fn find_path_to_goal(input: &Grid) -> Option<(Vec<Node>, usize)> {
+    let start_node = input.start.clone();
+    astar(
+        &start_node,
+        |n| input.neighbors(n),
+        |n| input.manhatten_distance(n),
+        |n| *n == input.goal,
+    )
+}
+
+fn part1(input: &Grid) -> usize {
+    let res = find_path_to_goal(input).unwrap();
+    res.0.iter().for_each(|e| {
+        print!("{}", String::from_utf8_lossy(&[input.at(e.y, e.x)]));
+    });
+    println!();
+    res.1
 }
 
 fn main() {
