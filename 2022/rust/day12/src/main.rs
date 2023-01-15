@@ -1,4 +1,4 @@
-use pathfinding::prelude::astar;
+use pathfinding::prelude::bfs;
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq, PartialOrd)]
 struct Node {
@@ -45,7 +45,7 @@ impl Grid {
         self.goal.y.abs_diff(node.y) + self.goal.x.abs_diff(node.x)
     }
 
-    fn neighbors(&self, node: &Node) -> Vec<(Node, usize)> {
+    fn neighbors(&self, node: &Node) -> Vec<Node> {
         let cur_grid_val = self.at(node.y, node.x);
         let mut neighbors = vec![];
         for (dy, dx) in [(-1, 0), (1, 0), (0, 1), (0, -1)] {
@@ -61,7 +61,7 @@ impl Grid {
                     || (cur_grid_val == b'S' && new_grid_value == b'a')
                 {
                     println!("{}", String::from_utf8_lossy(&[new_grid_value]));
-                    neighbors.push((Node::new(y, x), 1));
+                    neighbors.push(Node::new(y, x));
                 }
             }
         }
@@ -81,23 +81,18 @@ fn decode_input(input: &str) -> Grid {
     Grid::new(cells, width)
 }
 
-fn find_path_to_goal(input: &Grid) -> Option<(Vec<Node>, usize)> {
+fn find_path_to_goal(input: &Grid) -> Option<Vec<Node>> {
     let start_node = input.start.clone();
-    astar(
-        &start_node,
-        |n| input.neighbors(n),
-        |n| input.manhatten_distance(n),
-        |n| *n == input.goal,
-    )
+    bfs(&start_node, |n| input.neighbors(n), |n| *n == input.goal)
 }
 
 fn part1(input: &Grid) -> usize {
     let res = find_path_to_goal(input).unwrap();
-    res.0.iter().for_each(|e| {
+    res.iter().for_each(|e| {
         print!("{}", String::from_utf8_lossy(&[input.at(e.y, e.x)]));
     });
     println!();
-    res.1
+    res.len() - 1
 }
 
 fn main() {
