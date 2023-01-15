@@ -53,9 +53,7 @@ impl Grid {
             let Some(x) = node.x.checked_add_signed(dx) else { continue; };
             if y < self.height() && x < self.width {
                 let new_grid_value = self.at(y, x);
-                if cur_grid_val == new_grid_value
-                    || cur_grid_val + 1 == new_grid_value
-                    || cur_grid_val - 1 == new_grid_value
+                if new_grid_value <= cur_grid_val + 1
                     || ((cur_grid_val + 1 == b'z' || cur_grid_val == b'z')
                         && new_grid_value == b'E')
                     || (cur_grid_val == b'S' && new_grid_value == b'a')
