@@ -52,13 +52,11 @@ impl Grid {
             let Some(y) = node.y.checked_add_signed(dy) else { continue; };
             let Some(x) = node.x.checked_add_signed(dx) else { continue; };
             if y < self.height() && x < self.width {
-                let new_grid_value = self.at(y, x);
-                if new_grid_value <= cur_grid_val + 1
-                    || ((cur_grid_val + 1 == b'z' || cur_grid_val == b'z')
-                        && new_grid_value == b'E')
-                    || (cur_grid_val == b'S' && new_grid_value == b'a')
+                let new_grid_val = self.at(y, x);
+                if (new_grid_val >= b'a' && new_grid_val <= cur_grid_val + 1)
+                    || ((cur_grid_val + 1 == b'z' || cur_grid_val == b'z') && new_grid_val == b'E')
+                    || (cur_grid_val == b'S' && new_grid_val == b'a')
                 {
-                    println!("{}", String::from_utf8_lossy(&[new_grid_value]));
                     neighbors.push((Node::new(y, x), 1));
                 }
             }
