@@ -89,13 +89,14 @@ fn part1(input: &mut [Vec<Element>]) -> usize {
                 None
             };
             match (left_element, right_element) {
-                (None, None) => break,
+                (None, None) => {
+                    break;
+                }
+                (Some(Element::ListStart), Some(Element::ListStart)) => {},
+                (Some(Element::ListEnd), Some(Element::ListEnd)) => {},
                 (Some(Element::Value(l_val)), Some(Element::Value(r_val))) => {
                     if l_val < r_val {
-                        // fast forward rest of left list
-                        li = determine_list_end(&input[left], li);
-                        // fast forward rest of right list
-                        ri = determine_list_end(&input[right], ri)
+                        break;
                    } else if l_val > r_val {
                         is_pair_ok = false;
                         break;
@@ -103,10 +104,8 @@ fn part1(input: &mut [Vec<Element>]) -> usize {
                 }
                 (Some(Element::ListStart), Some(Element::Value(_))) => {
                     debug_assert!(ri+1 < input[right].len());
-                    let prev_element = input[right][ri-1].clone();
-                    let next_element = input[right][ri+1].clone();
-                    if prev_element == Element::ListEnd &&
-                       ( next_element == Element::ListEnd || next_element == Element::ListStart ) {
+                    let right_next = input[right][ri+1].clone();
+                    if right_next == Element::ListEnd || right_next == Element::ListStart {
                         li += 1;
                         input[right].insert(ri+1, Element::ListEnd);
                         continue;
@@ -117,10 +116,8 @@ fn part1(input: &mut [Vec<Element>]) -> usize {
                 }
                 (Some(Element::Value(_)), Some(Element::ListStart)) => {
                     debug_assert!(li+1 < input[left].len());
-                    let prev_element = input[left][li-1].clone();
-                    let next_element = input[left][li+1].clone();
-                    if prev_element == Element::ListStart &&
-                      ( next_element == Element::ListEnd || next_element == Element::ListStart ) {
+                    let left_next = input[left][li+1].clone();
+                    if left_next == Element::ListEnd || left_next == Element::ListStart {
                             ri += 1;
                             input[left].insert(li+1, Element::ListEnd);
                             continue;
@@ -133,8 +130,7 @@ fn part1(input: &mut [Vec<Element>]) -> usize {
                     // [[[],7,5,6,[]]
                     // [[[[4]]]]
                 (Some(Element::ListEnd), Some(Element::Value(_))) => {
-                    // fast forward rest of right list
-                    ri = determine_list_end(&input[right], ri);
+                    break;
                 }
                 (Some(Element::ListStart), Some(Element::ListEnd)) |
                 (Some(Element::Value(_)), Some(Element::ListEnd)) |
@@ -142,8 +138,6 @@ fn part1(input: &mut [Vec<Element>]) -> usize {
                     is_pair_ok = false;
                     break;
                 }
-                (Some(Element::ListStart), Some(Element::ListStart)) => {},
-                (Some(Element::ListEnd), Some(Element::ListEnd)) => {},
                 (le, re) => {
                     dbg!(le);
                     dbg!(re);
@@ -171,6 +165,12 @@ fn main() {
 #[cfg(test)]
 mod test {
 
+    #[test]
+    fn test_part1() {
+        let mut input = super::decode_input(TEST);
+        assert_eq!(13_usize, super::part1(&mut input));
+    }
+
     const TEST: &str = r#"
 [1,1,3,1,1]
 [1,1,5,1,1]
@@ -196,12 +196,6 @@ mod test {
 [1,[2,[3,[4,[5,6,7]]]],8,9]
 [1,[2,[3,[4,[5,6,0]]]],8,9]
 "#;
-
-    #[test]
-    fn test_part1() {
-        let mut input = super::decode_input(TEST);
-        assert_eq!(13_usize, super::part1(&mut input));
-    }
 }
 
 const INPUT: &str = r#"
