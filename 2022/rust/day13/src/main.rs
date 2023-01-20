@@ -48,26 +48,6 @@ fn decode_input(input: &str) -> Vec<Vec<Element>> {
     input
 }
 
-fn determine_list_end(elements: &[Element], start_pos: usize) -> usize {
-    let mut open_lists = 0;
-    let mut list_end = start_pos;
-    while list_end < elements.len() {
-        match elements[list_end] {
-            Element::ListStart => open_lists += 1,
-            Element::ListEnd => {
-                if open_lists == 0 {
-                    break;
-                } else {
-                    open_lists -= 1;
-                }
-            }
-            Element::Value(_) => {}
-        }
-        list_end += 1;
-    }
-    list_end
-}
-
 fn part1(input: &mut [Vec<Element>]) -> usize {
     let mut left = 0;
     let mut right = 1;
@@ -103,28 +83,14 @@ fn part1(input: &mut [Vec<Element>]) -> usize {
                     }
                 }
                 (Some(Element::ListStart), Some(Element::Value(_))) => {
-                    debug_assert!(ri+1 < input[right].len());
-                    let right_next = input[right][ri+1].clone();
-                    if right_next == Element::ListEnd || right_next == Element::ListStart {
-                        li += 1;
-                        input[right].insert(ri+1, Element::ListEnd);
-                        continue;
-                    } else {
-                        is_pair_ok = false;
-                        break;
-                    }
+                    li += 1;
+                    input[right].insert(ri+1, Element::ListEnd);
+                    continue;
                 }
                 (Some(Element::Value(_)), Some(Element::ListStart)) => {
-                    debug_assert!(li+1 < input[left].len());
-                    let left_next = input[left][li+1].clone();
-                    if left_next == Element::ListEnd || left_next == Element::ListStart {
-                            ri += 1;
-                            input[left].insert(li+1, Element::ListEnd);
-                            continue;
-                    } else {
-                        is_pair_ok = false;
-                        break;
-                    }
+                    ri += 1;
+                    input[left].insert(li+1, Element::ListEnd);
+                    continue;
                 }
                 (Some(Element::ListEnd), Some(Element::ListStart)) |
                     // [[[],7,5,6,[]]
@@ -147,6 +113,7 @@ fn part1(input: &mut [Vec<Element>]) -> usize {
             li += 1;
             ri += 1;
         }
+        dbg!(is_pair_ok);
         if is_pair_ok {
             pair_ok_count += current_pair;
         }
@@ -169,6 +136,18 @@ mod test {
     fn test_part1() {
         let mut input = super::decode_input(TEST);
         assert_eq!(13_usize, super::part1(&mut input));
+    }
+
+    #[test]
+    fn test_part1_special() {
+        let mut input = super::decode_input("\n[[8,[[7]]]]\n[[[[8]]]]");
+        assert_eq!(0_usize, super::part1(&mut input));
+    }
+
+    #[test]
+    fn test_part1_special2() {
+        let mut input = super::decode_input("\n[[[[1],9],[[],0,3,5,4],[7,10,[]],2],[[[3],9,6,1],[],[[],[8,3,7,1]],7]]\n[[[9,3,[4,2]],4,6]]");
+        assert_eq!(1_usize, super::part1(&mut input));
     }
 
     const TEST: &str = r#"
