@@ -2,7 +2,7 @@
 #![feature(slice_as_chunks)]
 #![feature(let_chains)]
 
-use std::{borrow::Cow, cmp::Ordering, f64::consts::E};
+use std::{borrow::Cow, cmp::Ordering};
 
 #[derive(Debug, PartialEq, Clone)]
 enum Element {
@@ -115,8 +115,9 @@ fn cmp_lists(mut left: Cow<[Element]>, mut right: Cow<[Element]>) -> Ordering {
     order
 }
 
+#[allow(dead_code)]
 fn print_lists(input: &[Vec<Element>]) {
-    input.iter().enumerate().for_each(|(i, v)| {
+    input.iter().for_each(|(v)| {
         v.iter().for_each(|e| {
             match e {
                 Element::ListStart => print!("["),
