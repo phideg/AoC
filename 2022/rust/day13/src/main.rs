@@ -2,6 +2,8 @@
 #![feature(slice_as_chunks)]
 #![feature(let_chains)]
 
+use std::{borrow::Cow, cmp::Ordering, f64::consts::E};
+
 #[derive(Debug, PartialEq, Clone)]
 enum Element {
     ListStart,
@@ -48,73 +50,91 @@ fn decode_input(input: &str) -> Vec<Vec<Element>> {
     input
 }
 
-fn part1(input: &mut [Vec<Element>]) -> usize {
+fn cmp_lists(mut left: Cow<[Element]>, mut right: Cow<[Element]>) -> Ordering {
+    let mut order = Ordering::Equal;
+    let mut li = 0;
+    let mut ri = 0;
+    loop {
+        let left_element = if li < left.len() {
+            Some(left[li].clone())
+        } else {
+            None
+        };
+        let right_element = if ri < right.len() {
+            Some(right[ri].clone())
+        } else {
+            None
+        };
+        match (left_element, right_element) {
+            (None, None) => {
+                break;
+            }
+            (Some(Element::ListStart), Some(Element::ListStart)) => {},
+            (Some(Element::ListEnd), Some(Element::ListEnd)) => {},
+            (Some(Element::Value(l_val)), Some(Element::Value(r_val))) => {
+                if l_val < r_val {
+                    order = Ordering::Less;
+                    break;
+               } else if l_val > r_val {
+                    order = Ordering::Greater;
+                    break;
+                }
+            }
+            (Some(Element::ListStart), Some(Element::Value(_))) => {
+                li += 1;
+                right.to_mut().insert(ri+1, Element::ListEnd);
+                continue;
+            }
+            (Some(Element::Value(_)), Some(Element::ListStart)) => {
+                ri += 1;
+                left.to_mut().insert(li+1, Element::ListEnd);
+                continue;
+            }
+            (Some(Element::ListEnd), Some(Element::ListStart)) |
+                // [[[],7,5,6,[]]
+                // [[[[4]]]]
+            (Some(Element::ListEnd), Some(Element::Value(_))) => {
+                order = Ordering::Less;
+                break;
+            }
+            (Some(Element::ListStart), Some(Element::ListEnd)) |
+            (Some(Element::Value(_)), Some(Element::ListEnd)) |
+            (Some(Element::Value(_)), None) => {
+                order = Ordering::Greater;
+                break;
+            }
+            (le, re) => {
+                dbg!(le);
+                dbg!(re);
+                unreachable!()
+            },
+        }
+        li += 1;
+        ri += 1;
+    }
+    order
+}
+
+fn print_lists(input: &[Vec<Element>]) {
+    input.iter().enumerate().for_each(|(i, v)| {
+        v.iter().for_each(|e| {
+            match e {
+                Element::ListStart => print!("["),
+                Element::ListEnd => print!("],"),
+                Element::Value(val) => print!("{val},"),
+            };
+        });
+        println!();
+    });
+}
+
+fn part1(input: &[Vec<Element>]) -> usize {
     let mut left = 0;
     let mut right = 1;
     let mut current_pair = 1;
     let mut pair_ok_count = 0;
     while right < input.len() {
-        let mut li = 0;
-        let mut ri = 0;
-        let mut is_pair_ok = true;
-        loop {
-            let left_element = if li < input[left].len() {
-                Some(input[left][li].clone())
-            } else {
-                None
-            };
-            let right_element = if ri < input[right].len() {
-                Some(input[right][ri].clone())
-            } else {
-                None
-            };
-            match (left_element, right_element) {
-                (None, None) => {
-                    break;
-                }
-                (Some(Element::ListStart), Some(Element::ListStart)) => {},
-                (Some(Element::ListEnd), Some(Element::ListEnd)) => {},
-                (Some(Element::Value(l_val)), Some(Element::Value(r_val))) => {
-                    if l_val < r_val {
-                        break;
-                   } else if l_val > r_val {
-                        is_pair_ok = false;
-                        break;
-                    }
-                }
-                (Some(Element::ListStart), Some(Element::Value(_))) => {
-                    li += 1;
-                    input[right].insert(ri+1, Element::ListEnd);
-                    continue;
-                }
-                (Some(Element::Value(_)), Some(Element::ListStart)) => {
-                    ri += 1;
-                    input[left].insert(li+1, Element::ListEnd);
-                    continue;
-                }
-                (Some(Element::ListEnd), Some(Element::ListStart)) |
-                    // [[[],7,5,6,[]]
-                    // [[[[4]]]]
-                (Some(Element::ListEnd), Some(Element::Value(_))) => {
-                    break;
-                }
-                (Some(Element::ListStart), Some(Element::ListEnd)) |
-                (Some(Element::Value(_)), Some(Element::ListEnd)) |
-                (Some(Element::Value(_)), None) => {
-                    is_pair_ok = false;
-                    break;
-                }
-                (le, re) => {
-                    dbg!(le);
-                    dbg!(re);
-                    unreachable!()
-                },
-            }
-            li += 1;
-            ri += 1;
-        }
-        dbg!(is_pair_ok);
-        if is_pair_ok {
+        if cmp_lists(Cow::from(&input[left]), Cow::from(&input[right])) == Ordering::Less {
             pair_ok_count += current_pair;
         }
         left += 2;
@@ -124,9 +144,38 @@ fn part1(input: &mut [Vec<Element>]) -> usize {
     pair_ok_count
 }
 
+fn part2(input: &mut Vec<Vec<Element>>) -> usize {
+    let divider1 = vec![
+        Element::ListStart,
+        Element::ListStart,
+        Element::Value(2),
+        Element::ListEnd,
+        Element::ListEnd,
+    ];
+    let divider2 = vec![
+        Element::ListStart,
+        Element::ListStart,
+        Element::Value(6),
+        Element::ListEnd,
+        Element::ListEnd,
+    ];
+    input.push(divider1.clone());
+    input.push(divider2.clone());
+    input.sort_unstable_by(|l, r| cmp_lists(Cow::from(l), Cow::from(r)));
+    // print_lists(input);
+    input.iter().enumerate().fold(1, |acc, (i, l)| {
+        if l == &divider1 || l == &divider2 {
+            acc * (i + 1)
+        } else {
+            acc
+        }
+    })
+}
+
 fn main() {
     let mut input = decode_input(INPUT);
     println!("Part 1: {}", part1(&mut input));
+    println!("Part 2: {}", part2(&mut input));
 }
 
 #[cfg(test)]
@@ -148,6 +197,12 @@ mod test {
     fn test_part1_special2() {
         let mut input = super::decode_input("\n[[[[1],9],[[],0,3,5,4],[7,10,[]],2],[[[3],9,6,1],[],[[],[8,3,7,1]],7]]\n[[[9,3,[4,2]],4,6]]");
         assert_eq!(1_usize, super::part1(&mut input));
+    }
+
+    #[test]
+    fn test_part2() {
+        let mut input = super::decode_input(TEST);
+        assert_eq!(140_usize, super::part2(&mut input));
     }
 
     const TEST: &str = r#"
