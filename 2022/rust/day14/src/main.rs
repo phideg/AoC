@@ -1,64 +1,100 @@
-fn decode_input(input: &str) -> Vec<Vec<Element>> {
-    let input = input
+#![feature(iter_array_chunks)]
+
+use std::collections::HashSet;
+
+#[derive(Debug, PartialEq)]
+struct Cave {
+    obstacles: HashSet<(usize, usize)>,
+    height: usize,
+    begin: usize,
+    end: usize,
+}
+
+impl Cave {
+    fn new() -> Self {
+        Self {
+            obstacles: HashSet::new(),
+            height: 0,
+            begin: usize::MAX,
+            end: 0,
+        }
+    }
+}
+
+fn add_path_segment(p1: (usize, usize), p2: (usize, usize), map: &mut HashSet<(usize, usize)>) {
+    assert!(p1.0.abs_diff(p2.0) == 0 || p1.1.abs_diff(p2.1) == 0);
+    let x1 = p1.0.min(p2.0);
+    let x2 = p1.0.max(p2.0);
+    (x1..=x2).for_each(|x| {
+        map.insert((x, p1.1));
+    });
+    let y1 = p1.1.min(p2.1);
+    let y2 = p1.1.max(p2.1);
+    (y1..=y2).for_each(|y| {
+        map.insert((p1.0, y));
+    });
+}
+
+fn decode_input(input: &str) -> Cave {
+    let mut cave = Cave::new();
+    input
         .split_terminator('\n')
         .filter(|line| !line.is_empty())
-        .map(map_line)
-        .collect::<Vec<Vec<Element>>>();
-    input
+        .for_each(|l| {
+            let mut p1 = Option::None;
+            l.split_whitespace()
+                .filter(|&t| t != "->")
+                .map(|t| {
+                    t.split_terminator(',')
+                        .map(|v| v.parse().unwrap())
+                        .array_chunks()
+                        .next()
+                        .unwrap()
+                })
+                .for_each(|[x, y]| {
+                    let p2 = (x, y);
+                    if let Some(p1) = p1 {
+                        add_path_segment(p1, p2, &mut cave.obstacles);
+                    }
+                    cave.begin = p2.0.min(cave.begin);
+                    cave.end = p2.0.max(cave.end);
+                    cave.height = p2.1.max(cave.height);
+                    p1 = Some(p2);
+                });
+        });
+    cave
 }
 
-fn part1(input: &[Vec<Element>]) -> usize {
-    let mut left = 0;
-    let mut right = 1;
-    let mut current_pair = 1;
-    let mut pair_ok_count = 0;
-    while right < input.len() {
-        if cmp_lists(Cow::from(&input[left]), Cow::from(&input[right])) == Ordering::Less {
-            pair_ok_count += current_pair;
-        }
-        left += 2;
-        right += 2;
-        current_pair += 1;
-    }
-    pair_ok_count
+fn pour_sand(start: usize) {}
+
+fn part1(input: &Cave) -> usize {
+    0
 }
 
-fn part2(input: &mut Vec<Vec<Element>>) -> usize {
-    let divider1 = vec![
-        Element::ListStart,
-        Element::ListStart,
-        Element::Value(2),
-        Element::ListEnd,
-        Element::ListEnd,
-    ];
-    let divider2 = vec![
-        Element::ListStart,
-        Element::ListStart,
-        Element::Value(6),
-        Element::ListEnd,
-        Element::ListEnd,
-    ];
-    input.push(divider1.clone());
-    input.push(divider2.clone());
-    input.sort_unstable_by(|l, r| cmp_lists(Cow::from(l), Cow::from(r)));
-    // print_lists(input);
-    input.iter().enumerate().fold(1, |acc, (i, l)| {
-        if l == &divider1 || l == &divider2 {
-            acc * (i + 1)
-        } else {
-            acc
-        }
-    })
-}
+// fn part2(input: &mut Vec<Vec<(usize, usize)>>) -> usize {}
 
 fn main() {
     let mut input = decode_input(INPUT);
     println!("Part 1: {}", part1(&mut input));
-    println!("Part 2: {}", part2(&mut input));
+    // println!("Part 2: {}", part2(&mut input));
 }
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
+    use crate::Cave;
+
+    #[test]
+    fn test_decode() {
+        let expected = Cave {
+            obstacles: HashSet::from([(498, 4), (498, 5), (498, 6), (497, 6), (496, 6)]),
+            height: 6,
+            begin: 496,
+            end: 498,
+        };
+        assert_eq!(expected, super::decode_input("498,4 -> 498,6 -> 496,6"));
+    }
 
     #[test]
     fn test_part1() {
@@ -66,48 +102,15 @@ mod test {
         assert_eq!(13_usize, super::part1(&mut input));
     }
 
-    #[test]
-    fn test_part1_special() {
-        let mut input = super::decode_input("\n[[8,[[7]]]]\n[[[[8]]]]");
-        assert_eq!(0_usize, super::part1(&mut input));
-    }
-
-    #[test]
-    fn test_part1_special2() {
-        let mut input = super::decode_input("\n[[[[1],9],[[],0,3,5,4],[7,10,[]],2],[[[3],9,6,1],[],[[],[8,3,7,1]],7]]\n[[[9,3,[4,2]],4,6]]");
-        assert_eq!(1_usize, super::part1(&mut input));
-    }
-
-    #[test]
-    fn test_part2() {
-        let mut input = super::decode_input(TEST);
-        assert_eq!(140_usize, super::part2(&mut input));
-    }
+    // #[test]
+    // fn test_part2() {
+    //     let mut input = super::decode_input(TEST);
+    //     assert_eq!(140_usize, super::part2(&mut input));
+    // }
 
     const TEST: &str = r#"
-[1,1,3,1,1]
-[1,1,5,1,1]
-
-[[1],[2,3,4]]
-[[1],4]
-
-[9]
-[[8,7,6]]
-
-[[4,4],4,4]
-[[4,4],4,4,4]
-
-[7,7,7,7]
-[7,7,7]
-
-[]
-[3]
-
-[[[]]]
-[[]]
-
-[1,[2,[3,[4,[5,6,7]]]],8,9]
-[1,[2,[3,[4,[5,6,0]]]],8,9]
+498,4 -> 498,6 -> 496,6
+503,4 -> 502,4 -> 502,9 -> 494,9
 "#;
 }
 
