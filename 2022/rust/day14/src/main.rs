@@ -19,20 +19,31 @@ impl Cave {
             end: 0,
         }
     }
-}
 
-fn add_path_segment(p1: (usize, usize), p2: (usize, usize), map: &mut HashSet<(usize, usize)>) {
-    assert!(p1.0.abs_diff(p2.0) == 0 || p1.1.abs_diff(p2.1) == 0);
-    let x1 = p1.0.min(p2.0);
-    let x2 = p1.0.max(p2.0);
-    (x1..=x2).for_each(|x| {
-        map.insert((x, p1.1));
-    });
-    let y1 = p1.1.min(p2.1);
-    let y2 = p1.1.max(p2.1);
-    (y1..=y2).for_each(|y| {
-        map.insert((p1.0, y));
-    });
+    fn next_position(&self, pos: (usize, usize)) -> (usize, usize) {
+        for (dx, dy) in [(0, 1), (-1, 1), (1, 1)] {
+            let Some(new_x) = pos.0.checked_add_signed(dx) else { continue };
+            let new_y = pos.1 + dy;
+            if !self.obstacles.contains(&(new_x, new_y)) {
+                return (new_x, new_y);
+            }
+        }
+        pos
+    }
+
+    fn add_path_segment(&mut self, p1: (usize, usize), p2: (usize, usize)) {
+        assert!(p1.0.abs_diff(p2.0) == 0 || p1.1.abs_diff(p2.1) == 0);
+        let x1 = p1.0.min(p2.0);
+        let x2 = p1.0.max(p2.0);
+        (x1..=x2).for_each(|x| {
+            self.obstacles.insert((x, p1.1));
+        });
+        let y1 = p1.1.min(p2.1);
+        let y2 = p1.1.max(p2.1);
+        (y1..=y2).for_each(|y| {
+            self.obstacles.insert((p1.0, y));
+        });
+    }
 }
 
 fn decode_input(input: &str) -> Cave {
@@ -54,7 +65,7 @@ fn decode_input(input: &str) -> Cave {
                 .for_each(|[x, y]| {
                     let p2 = (x, y);
                     if let Some(p1) = p1 {
-                        add_path_segment(p1, p2, &mut cave.obstacles);
+                        cave.add_path_segment(p1, p2);
                     }
                     cave.begin = p2.0.min(cave.begin);
                     cave.end = p2.0.max(cave.end);
@@ -65,10 +76,28 @@ fn decode_input(input: &str) -> Cave {
     cave
 }
 
-fn pour_sand(start: usize) {}
+fn pour_sand(cave: &mut Cave, start: usize) -> usize {
+    assert!(start < cave.end);
+    let mut pos = (start, 0);
+    let mut units = 0;
+    while pos != (cave.begin - 1, cave.height) && pos != (cave.end + 1, cave.height) {
+        pos = (start, 0);
+        let mut next_pos = cave.next_position(pos);
+        while pos != next_pos && pos.0 >= cave.begin && pos.0 <= cave.end && pos.1 < cave.height {
+            pos = next_pos;
+            next_pos = cave.next_position(pos);
+            if pos == next_pos {
+                cave.obstacles.insert(pos);
+                units += 1;
+                break;
+            }
+        }
+    }
+    units
+}
 
-fn part1(input: &Cave) -> usize {
-    0
+fn part1(input: &mut Cave) -> usize {
+    pour_sand(input, 500)
 }
 
 // fn part2(input: &mut Vec<Vec<(usize, usize)>>) -> usize {}
@@ -99,7 +128,7 @@ mod test {
     #[test]
     fn test_part1() {
         let mut input = super::decode_input(TEST);
-        assert_eq!(13_usize, super::part1(&mut input));
+        assert_eq!(24_usize, super::part1(&mut input));
     }
 
     // #[test]
