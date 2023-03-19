@@ -1,8 +1,9 @@
 #![feature(iter_array_chunks)]
+#![feature(slice_group_by)]
 
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct Cave {
     obstacles: HashSet<(usize, usize)>,
     height: usize,
@@ -24,7 +25,7 @@ impl Cave {
         for (dx, dy) in [(0, 1), (-1, 1), (1, 1)] {
             let Some(new_x) = pos.0.checked_add_signed(dx) else { continue };
             let new_y = pos.1 + dy;
-            if !self.obstacles.contains(&(new_x, new_y)) {
+            if !self.obstacles.contains(&(new_x, new_y)) && new_y < self.height + 2 {
                 return (new_x, new_y);
             }
         }
@@ -36,13 +37,37 @@ impl Cave {
         let x1 = p1.0.min(p2.0);
         let x2 = p1.0.max(p2.0);
         (x1..=x2).for_each(|x| {
-            self.obstacles.insert((x, p1.1));
+            self.add_obstacle((x, p1.1));
         });
         let y1 = p1.1.min(p2.1);
         let y2 = p1.1.max(p2.1);
         (y1..=y2).for_each(|y| {
-            self.obstacles.insert((p1.0, y));
+            self.add_obstacle((p1.0, y));
         });
+    }
+
+    fn add_obstacle(&mut self, p: (usize, usize)) {
+        self.begin = self.begin.min(p.0);
+        self.end = self.end.max(p.0);
+        self.obstacles.insert(p);
+    }
+}
+
+impl Display for Cave {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut list: Vec<(usize, usize)> = self.obstacles.iter().cloned().collect();
+        list.sort_by(|a, b| a.1.cmp(&b.1));
+        for row in list.group_by(|a, b| a.1 == b.1) {
+            let mut row = row.iter().map(|e| e.0).collect::<Vec<_>>();
+            row.sort();
+            let mut cursor = self.begin;
+            for value in row {
+                write!(f, "{: >width$}", "o", width = value - cursor)?;
+                cursor = value;
+            }
+            writeln!(f)?;
+        }
+        write!(f, "")
     }
 }
 
@@ -76,18 +101,17 @@ fn decode_input(input: &str) -> Cave {
     cave
 }
 
-fn pour_sand(cave: &mut Cave, start: usize) -> usize {
-    assert!(start < cave.end);
+fn part1(mut cave: Cave, start: usize) -> usize {
     let mut pos = (start, 0);
     let mut units = 0;
-    while pos != (cave.begin - 1, cave.height) && pos != (cave.end + 1, cave.height) {
+    while pos.0 != cave.begin - 1 && pos.0 != cave.end + 1 {
         pos = (start, 0);
         let mut next_pos = cave.next_position(pos);
         while pos != next_pos && pos.0 >= cave.begin && pos.0 <= cave.end && pos.1 < cave.height {
             pos = next_pos;
             next_pos = cave.next_position(pos);
             if pos == next_pos {
-                cave.obstacles.insert(pos);
+                cave.add_obstacle(pos);
                 units += 1;
                 break;
             }
@@ -96,16 +120,29 @@ fn pour_sand(cave: &mut Cave, start: usize) -> usize {
     units
 }
 
-fn part1(input: &mut Cave) -> usize {
-    pour_sand(input, 500)
+fn part2(mut cave: Cave, start: usize) -> usize {
+    let mut pos = (start, 0);
+    let mut next_pos = cave.next_position(pos);
+    let mut units = 1; // already counts the starting position
+                       // println!("{}", cave);
+    while pos != next_pos {
+        pos = next_pos;
+        next_pos = cave.next_position(pos);
+        if pos == next_pos {
+            cave.add_obstacle(pos);
+            units += 1;
+            pos = (start, 0);
+            next_pos = cave.next_position(pos);
+        }
+    }
+    // println!("{}", cave);
+    units
 }
 
-// fn part2(input: &mut Vec<Vec<(usize, usize)>>) -> usize {}
-
 fn main() {
-    let mut input = decode_input(INPUT);
-    println!("Part 1: {}", part1(&mut input));
-    // println!("Part 2: {}", part2(&mut input));
+    let input = decode_input(INPUT);
+    println!("Part 1: {}", part1(input.clone(), 500));
+    println!("Part 2: {}", part2(input, 500));
 }
 
 #[cfg(test)]
@@ -123,19 +160,45 @@ mod test {
             end: 498,
         };
         assert_eq!(expected, super::decode_input("498,4 -> 498,6 -> 496,6"));
+        let expected = Cave {
+            obstacles: HashSet::from([
+                (503, 4),
+                (502, 4),
+                (502, 5),
+                (502, 6),
+                (502, 7),
+                (502, 8),
+                (502, 9),
+                (501, 9),
+                (500, 9),
+                (499, 9),
+                (498, 9),
+                (497, 9),
+                (496, 9),
+                (495, 9),
+                (494, 9),
+            ]),
+            height: 9,
+            begin: 494,
+            end: 503,
+        };
+        assert_eq!(
+            expected,
+            super::decode_input("503,4 -> 502,4 -> 502,9 -> 494,9")
+        );
     }
 
     #[test]
     fn test_part1() {
-        let mut input = super::decode_input(TEST);
-        assert_eq!(24_usize, super::part1(&mut input));
+        let input = super::decode_input(TEST);
+        assert_eq!(24_usize, super::part1(input, 500));
     }
 
-    // #[test]
-    // fn test_part2() {
-    //     let mut input = super::decode_input(TEST);
-    //     assert_eq!(140_usize, super::part2(&mut input));
-    // }
+    #[test]
+    fn test_part2() {
+        let input = super::decode_input(TEST);
+        assert_eq!(93_usize, super::part2(input, 500));
+    }
 
     const TEST: &str = r#"
 498,4 -> 498,6 -> 496,6
