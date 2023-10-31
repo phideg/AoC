@@ -49,8 +49,12 @@ impl Grid {
         let cur_grid_val = self.at(node.y, node.x);
         let mut neighbors = vec![];
         for (dy, dx) in [(-1, 0), (1, 0), (0, 1), (0, -1)] {
-            let Some(y) = node.y.checked_add_signed(dy) else { continue; };
-            let Some(x) = node.x.checked_add_signed(dx) else { continue; };
+            let Some(y) = node.y.checked_add_signed(dy) else {
+                continue;
+            };
+            let Some(x) = node.x.checked_add_signed(dx) else {
+                continue;
+            };
             if y < self.height() && x < self.width {
                 let new_grid_val = self.at(y, x);
                 if (new_grid_val >= b'a' && new_grid_val <= cur_grid_val + 1)

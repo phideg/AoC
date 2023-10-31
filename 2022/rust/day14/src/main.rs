@@ -23,7 +23,9 @@ impl Cave {
 
     fn next_position(&self, pos: (usize, usize)) -> (usize, usize) {
         for (dx, dy) in [(0, 1), (-1, 1), (1, 1)] {
-            let Some(new_x) = pos.0.checked_add_signed(dx) else { continue };
+            let Some(new_x) = pos.0.checked_add_signed(dx) else {
+                continue;
+            };
             let new_y = pos.1 + dy;
             if !self.obstacles.contains(&(new_x, new_y)) && new_y < self.height + 2 {
                 return (new_x, new_y);

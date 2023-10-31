@@ -111,8 +111,12 @@ impl Valley {
                 return minute;
             }
             for delta in [(-1, 0), (1, 0), (0, 0), (0, 1), (0, -1)] {
-                let Some(row) = pos.0.checked_add_signed(delta.0) else { continue; };
-                let Some(col) = pos.1.checked_add_signed(delta.1) else { continue; };
+                let Some(row) = pos.0.checked_add_signed(delta.0) else {
+                    continue;
+                };
+                let Some(col) = pos.1.checked_add_signed(delta.1) else {
+                    continue;
+                };
                 if !(row < self.rows && col < self.cols) {
                     continue;
                 }

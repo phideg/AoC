@@ -1,3 +1,7 @@
+const NEEDED_UNUSED_SPACE: usize = 30_000_000;
+const DISK_SPACE: usize = 70_000_000;
+
+#[derive(Debug)]
 struct Dir<'a> {
     path: Vec<&'a str>,
     size: usize,
@@ -18,7 +22,7 @@ fn calc_dir_size(dir: &Dir, dirs: &[Dir]) -> usize {
     dir.size + size_subdirs
 }
 
-fn part1(input: &str) -> usize {
+fn calc_dir_stats(input: &str) -> Vec<Dir<'_>> {
     let mut directories = Vec::new();
     let mut current_path = Vec::new();
     for line in input.split_terminator('\n').filter(|f| !f.is_empty()) {
@@ -55,24 +59,52 @@ fn part1(input: &str) -> usize {
         }
     }
     directories
+}
+
+fn part1(dir_stats: &[Dir]) -> usize {
+    dir_stats
         .iter()
-        .map(|d| calc_dir_size(d, &directories))
+        .map(|d| calc_dir_size(d, dir_stats))
         .filter(|s| *s < 100000)
         .sum::<usize>()
 }
 
+fn part2(dir_stats: &[Dir]) -> usize {
+    let total_used_size = calc_dir_size(
+        dir_stats.iter().find(|d| d.path == vec!["/"]).unwrap(),
+        dir_stats,
+    );
+    let free_space = DISK_SPACE - total_used_size;
+    let needed_space = NEEDED_UNUSED_SPACE - free_space;
+    dir_stats
+        .iter()
+        .map(|d| calc_dir_size(d, dir_stats))
+        .filter(|s| *s >= needed_space)
+        .min()
+        .unwrap()
+}
+
 fn main() {
-    println!("{}", part1(INPUT));
+    let dir_stats = calc_dir_stats(INPUT);
+    println!("{}", part1(&dir_stats));
+    println!("{}", part2(&dir_stats));
 }
 
 #[cfg(test)]
 mod test {
-    use crate::part1;
 
     #[test]
     fn test_part1() {
-        assert_eq!(95437, part1(TEST));
+        let dir_stats = super::calc_dir_stats(TEST);
+        assert_eq!(95437, super::part1(&dir_stats));
     }
+
+    #[test]
+    fn test_part2() {
+        let dir_stats = super::calc_dir_stats(TEST);
+        assert_eq!(24933642, super::part2(&dir_stats));
+    }
+
     const TEST: &str = r#"
 $ cd /
 $ ls
