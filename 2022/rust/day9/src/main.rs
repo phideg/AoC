@@ -8,7 +8,22 @@ enum Direction {
     Down,
 }
 
+fn calc_diff(p1: &(i32, i32), p2: &(i32, i32)) -> (i32, i32) {
+    let diff_x = if p1.0 >= p2.0 {
+        p1.0 - p2.0
+    } else {
+        p2.0 - p1.0
+    };
+    let diff_y = if p1.1 >= p2.1 {
+        p1.1 - p2.1
+    } else {
+        p2.1 - p1.1
+    };
+    (diff_x, diff_y)
+}
+
 fn move_rope(rope: &mut [(i32, i32)], direction: &Direction) -> bool {
+    dbg!(format!("{rope:?}"));
     let mut old_head = rope[0];
     match direction {
         Direction::Up => rope[0].1 += 1,
@@ -19,8 +34,9 @@ fn move_rope(rope: &mut [(i32, i32)], direction: &Direction) -> bool {
     let mut tail_updated = false;
     let mut was_prev_move_diagonal = false;
     for i in 1..rope.len() {
-        let diff_x = i32::abs(rope[i].0 - rope[i - 1].0);
-        let diff_y = i32::abs(rope[i].1 - rope[i - 1].1);
+        let (diff_x, diff_y) = calc_diff(&rope[i], &rope[i - 1]);
+        dbg!(format!("{diff_x}/{diff_y}|{direction:?}"));
+        dbg!(format!("{rope:?}"));
         match (diff_x, diff_y) {
             (2, 2) => {
                 assert!(was_prev_move_diagonal);
@@ -59,6 +75,7 @@ fn move_rope(rope: &mut [(i32, i32)], direction: &Direction) -> bool {
             }
         };
     }
+    println!();
     tail_updated
 }
 
@@ -87,13 +104,9 @@ fn decode_input(input: &str) -> Vec<Direction> {
                         acc.pop();
                     }
                     "1" => {}
-                    "2" => {
-                        let direction = acc.last().unwrap().clone();
-                        acc.push(direction);
-                    }
                     steps => {
                         let direction = acc.last().unwrap().clone();
-                        (0..steps.parse::<usize>().unwrap() - 1)
+                        (1..steps.parse::<usize>().unwrap())
                             .for_each(|_| acc.push(direction.clone()));
                     }
                 };
@@ -161,7 +174,7 @@ U 20
     #[test]
     fn test_rope_part2_complex() {
         let input = super::decode_input(PART2_TEST);
-        assert_eq!(super::part2(&input), 35);
+        assert_eq!(dbg!(super::part2(&input)), 35);
     }
 }
 
