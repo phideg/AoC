@@ -29,8 +29,4 @@ members = [
 
 [workspace.package]
 authors = ["Philipp Degler"]
-description = "My solution of the Advent of Code 2022"
-
-[workspace.dependencies]
-regex = "1"
-rayon = "1"
+description = "My solution of the Advent of Code 2023"
