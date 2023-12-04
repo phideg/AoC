@@ -1,7 +1,12 @@
 use std::collections::HashSet;
 
-fn part1(input: &str) -> eyre::Result<usize> {
-    let mut numbers: Vec<((usize, usize, usize), usize)> = vec![];
+type Span = (usize, usize, usize);
+
+fn decode_input(
+    input: &str,
+    symbol: Option<u8>,
+) -> eyre::Result<(Vec<(Span, usize)>, HashSet<(usize, usize)>)> {
+    let mut numbers: Vec<(Span, usize)> = vec![];
     let mut symbols: HashSet<(usize, usize)> = HashSet::new();
     let max_rownum = input.lines().count();
     for (rownum, row) in input.lines().enumerate() {
@@ -9,6 +14,12 @@ fn part1(input: &str) -> eyre::Result<usize> {
         let mut number = vec![];
         for (colnum, value) in row.as_bytes().iter().enumerate().filter(|(_, b)| **b != 46) {
             if !value.is_ascii_digit() {
+                if let Some(s) = symbol {
+                    if *value == s {
+                        symbols.insert((rownum, colnum));
+                    }
+                    continue;
+                }
                 // add symbol and its sourrounding positions that could be touched by numbers
                 symbols.insert((rownum, colnum));
                 if rownum < max_rownum - 1 {
@@ -52,7 +63,7 @@ fn part1(input: &str) -> eyre::Result<usize> {
                 number.push(*value);
             }
         }
-        // the last number of a row also has to be added 
+        // the last number of a row also has to be added
         if !number.is_empty() {
             numbers.push((
                 (
@@ -64,6 +75,11 @@ fn part1(input: &str) -> eyre::Result<usize> {
             ));
         }
     }
+    Ok((numbers, symbols))
+}
+
+fn part1(input: &str) -> eyre::Result<usize> {
+    let (numbers, symbols) = decode_input(input, None)?;
     // filter numbers which are touching symbols and build the sum
     Ok(numbers
         .iter()
@@ -77,6 +93,28 @@ fn part1(input: &str) -> eyre::Result<usize> {
         .sum())
 }
 
+fn part2(input: &str) -> eyre::Result<usize> {
+    let (numbers, symbols) = decode_input(input, Some(42))?;
+    for (s_row, s_col) in symbols {
+        let found = numbers
+            .iter()
+            .filter_map(|((row, col_start, col_end), value)| {
+                if (s_row == *row && (s_col + 1 == *col_start || s_col - 1 == *col_end))
+                    || (s_row + 1 == *row && (col_start + 1 <= s_col && s_col <= col_end + 1))
+                    || (s_row > 0
+                        && s_row - 1 == *row
+                        && (col_start + 1 <= s_col && s_col <= col_end + 1))
+                {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+    }
+    todo!()
+}
+
 fn main() -> eyre::Result<()> {
     println!("part1 {}", part1(PUZZLE_INPUT)?);
     // println!("part2 {}", part2(PUZZLE_INPUT)?);
@@ -88,6 +126,11 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(super::part1(TEST_INPUT).unwrap(), 4361);
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(super::part2(TEST_INPUT).unwrap(), 467835);
     }
 
     const TEST_INPUT: &str = "467..114..
