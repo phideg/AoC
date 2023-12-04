@@ -95,24 +95,36 @@ fn part1(input: &str) -> eyre::Result<usize> {
 
 fn part2(input: &str) -> eyre::Result<usize> {
     let (numbers, symbols) = decode_input(input, Some(42))?;
-    for (s_row, s_col) in symbols {
-        let found = numbers
-            .iter()
-            .filter_map(|((row, col_start, col_end), value)| {
-                if (s_row == *row && (s_col + 1 == *col_start || s_col - 1 == *col_end))
-                    || (s_row + 1 == *row && (col_start + 1 <= s_col && s_col <= col_end + 1))
-                    || (s_row > 0
-                        && s_row - 1 == *row
-                        && (col_start + 1 <= s_col && s_col <= col_end + 1))
-                {
-                    Some(*value)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-    }
-    todo!()
+    dbg!(&symbols);
+    Ok(symbols
+        .iter()
+        .filter_map(|&(s_row, s_col)| {
+            let found = numbers
+                .iter()
+                .filter_map(|&((row, col_start, col_end), value)| {
+                    let col_end = col_end + 1;
+                    let col_start = col_start.min(col_start.wrapping_sub(1));
+                    if (row == s_row && (s_col == col_start || s_col == col_end ))
+                        || (row == s_row + 1
+                            && (col_start >= s_col && s_col <= col_end))
+                        || (s_row > 0
+                            && row == s_row - 1
+                            && (col_start >= s_col && s_col <= col_end))
+                    {
+                        Some(value)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
+            dbg!(&found);
+            if found.len() == 2 {
+                Some(found[0] * found[1])
+            } else {
+                None
+            }
+        })
+        .sum())
 }
 
 fn main() -> eyre::Result<()> {
