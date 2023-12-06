@@ -95,21 +95,18 @@ fn part1(input: &str) -> eyre::Result<usize> {
 
 fn part2(input: &str) -> eyre::Result<usize> {
     let (numbers, symbols) = decode_input(input, Some(42))?;
-    dbg!(&symbols);
     Ok(symbols
         .iter()
         .filter_map(|&(s_row, s_col)| {
             let found = numbers
                 .iter()
                 .filter_map(|&((row, col_start, col_end), value)| {
-                    let col_end = col_end + 1;
                     let col_start = col_start.min(col_start.wrapping_sub(1));
-                    if (row == s_row && (s_col == col_start || s_col == col_end ))
-                        || (row == s_row + 1
-                            && (col_start >= s_col && s_col <= col_end))
-                        || (s_row > 0
-                            && row == s_row - 1
-                            && (col_start >= s_col && s_col <= col_end))
+                    let col_end = col_end + 1;
+                    if (row == s_row && (col_start == s_col || col_end == s_col))
+                        || (row == s_row + 1 || s_row > 0 && row == s_row - 1)
+                            && col_start <= s_col
+                            && col_end >= s_col
                     {
                         Some(value)
                     } else {
@@ -117,7 +114,6 @@ fn part2(input: &str) -> eyre::Result<usize> {
                     }
                 })
                 .collect::<Vec<_>>();
-            dbg!(&found);
             if found.len() == 2 {
                 Some(found[0] * found[1])
             } else {
@@ -129,7 +125,7 @@ fn part2(input: &str) -> eyre::Result<usize> {
 
 fn main() -> eyre::Result<()> {
     println!("part1 {}", part1(PUZZLE_INPUT)?);
-    // println!("part2 {}", part2(PUZZLE_INPUT)?);
+    println!("part2 {}", part2(PUZZLE_INPUT)?);
     Ok(())
 }
 
@@ -145,7 +141,8 @@ mod tests {
         assert_eq!(super::part2(TEST_INPUT).unwrap(), 467835);
     }
 
-    const TEST_INPUT: &str = "467..114..
+    const TEST_INPUT: &str = "
+467..114..
 ...*......
 ..35..633.
 ......#...
