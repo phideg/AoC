@@ -38,6 +38,7 @@ fn part2(input: &str) -> usize {
     left.iter().map(|v| right.get(v).unwrap_or(&0_usize)).sum()
 }
 
+#[cfg(test)]
 mod tests {
     #[test]
     fn test_part1() {
