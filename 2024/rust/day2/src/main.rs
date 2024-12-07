@@ -87,6 +87,10 @@ mod tests {
     fn test_part2() {
         assert_eq!(super::part2(TEST_INPUT), 4);
         assert_eq!(super::part2(TEST_INPUT2), 1);
+        assert_eq!(super::part2("1 4 3 5 6 7"), 1);
+        assert_eq!(super::part2("1 4 4 5 6 7"), 1);
+        assert_eq!(super::part2("6 1 4 5 6 7"), 1);
+        assert_eq!(super::part2("6 6 1 4 5 6 7"), 0);
     }
 
     const TEST_INPUT: &str = r"7 6 4 2 1
@@ -1098,4 +1102,5 @@ const INPUT: &str = r"9 12 14 16 17 18 15
 73 70 68 65 63 61 58
 28 26 23 20 17 16 14
 36 34 31 28 26 23
-66 64 63 62 59 58";
+66 64 63 62 59 58
+";
