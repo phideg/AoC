@@ -59,21 +59,21 @@ fn main() {
     // println!("Part 2: {}", part2(input));
 }
 
-fn eval_robots(robots: &[Robot]) -> usize {
-    let quadrants = robots
-        .iter()
-        .filter(|v| v.p_x != middle_x && v.p_y != middle_y)
-        .fold([0_usize, 0, 0, 0], |mut acc, v| {
-            match (v.p_x < middle_x, v.p_y < middle_y) {
-                (true, true) => acc[0] += 1,
-                (true, false) => acc[1] += 1,
-                (false, true) => acc[2] += 1,
-                (false, false) => acc[3] += 1,
-            }
-            acc
-        });
-    quadrants.iter().filter(|&v| *v != 0).product()
-}
+// fn eval_robots(robots: &[Robot]) -> usize {
+//     let quadrants = robots
+//         .iter()
+//         .filter(|v| v.p_x != middle_x && v.p_y != middle_y)
+//         .fold([0_usize, 0, 0, 0], |mut acc, v| {
+//             match (v.p_x < middle_x, v.p_y < middle_y) {
+//                 (true, true) => acc[0] += 1,
+//                 (true, false) => acc[1] += 1,
+//                 (false, true) => acc[2] += 1,
+//                 (false, false) => acc[3] += 1,
+//             }
+//             acc
+//         });
+//     quadrants.iter().filter(|&v| *v != 0).product()
+// }
 
 fn part1(input: &str, seconds: isize, wide: isize, tall: isize) -> usize {
     let robots = input
@@ -102,6 +102,7 @@ fn part1(input: &str, seconds: isize, wide: isize, tall: isize) -> usize {
         .collect::<Vec<_>>();
     let middle_x = (wide / 2) + 1;
     let middle_y = (tall / 2) + 1;
+    todo!()
 }
 
 #[cfg(test)]
