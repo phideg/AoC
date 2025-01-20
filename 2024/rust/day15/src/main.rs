@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{collections::HashSet, str::FromStr};
 
 #[derive(Debug)]
 enum RobotMove {
@@ -58,72 +58,142 @@ impl FromStr for Warehouse {
 }
 
 impl Warehouse {
-    fn find_free(&self, direction: (isize, isize)) -> Option<(usize, usize)> {
-        let mut curr_pos = (
-            self.robot_position.0 as isize,
-            self.robot_position.1 as isize,
-        );
+    fn find_free_horizontal(&self, row: usize, direction: isize) -> Option<usize> {
+        let mut curr_pos = self.robot_position.0 as isize;
         // apply delta until we find a free space or a wall
         loop {
-            curr_pos = (curr_pos.0 + direction.0, curr_pos.1 + direction.1);
+            curr_pos = curr_pos + direction;
             let obstacle = self
                 .map
                 .iter()
-                .nth(curr_pos.0 as usize)
-                .map(|line| line.bytes().nth(curr_pos.1 as usize).unwrap())
+                .nth(row)
+                .map(|line| line.bytes().nth(curr_pos as usize).unwrap())
                 .unwrap();
             match obstacle {
                 b'#' => return None,
-                b'.' => return Some((curr_pos.0 as usize, curr_pos.1 as usize)),
-                b'O' => continue,
-                _ => {
+                b'.' => return Some(curr_pos as usize),
+                b'O' | b'[' | b']' => continue,
+                c => {
                     dbg!(&self);
+                    dbg!(c);
                     unreachable!()
                 }
             }
         }
     }
 
-    fn move_robot(&mut self, mut new_position: (usize, usize), direction: (isize, isize)) {
-        // shift objects until we reach the robot
-        loop {
-            let next = (
-                (new_position.0 as isize - direction.0) as usize,
-                (new_position.1 as isize - direction.1) as usize,
-            );
-            let entry = self.map[next.0].as_bytes()[next.1];
-            unsafe {
-                self.map[new_position.0].as_bytes_mut()[new_position.1] = entry;
-            }
-            if next == self.robot_position {
+    fn move_horizontal(&mut self, direction: isize) {
+        let row = self.robot_position.1;
+        if let Some(mut new_position) = self.find_free_horizontal(row, direction) {
+            // shift objects until we reach the robot
+            loop {
+                let next = (new_position as isize - direction) as usize;
+                let entry = self.map[row].as_bytes()[next];
                 unsafe {
-                    self.map[self.robot_position.0].as_bytes_mut()[self.robot_position.1] = b'.';
+                    self.map[row].as_bytes_mut()[new_position] = entry;
                 }
-                self.robot_position = (
-                    (self.robot_position.0 as isize + direction.0) as usize,
-                    (self.robot_position.1 as isize + direction.1) as usize,
-                );
-                return;
+                if next == self.robot_position.0 {
+                    unsafe {
+                        self.map[row].as_bytes_mut()[self.robot_position.0] = b'.';
+                    }
+                    self.robot_position =
+                        ((self.robot_position.0 as isize + direction) as usize, row);
+                    return;
+                }
+                new_position = next;
             }
-            new_position = next;
+        }
+    }
+
+    fn find_free_vertical(&self, pos: (usize, usize), direction: isize) -> HashSet<(usize, usize)> {
+        let mut positions = HashSet::new();
+        let next_row = (pos.1 as isize + direction) as usize;
+        match self.map[next_row].bytes().nth(pos.0) {
+            Some(b'O') => {
+                let next = self.find_free_vertical((pos.0, next_row), direction);
+                if next.is_empty() {
+                    return HashSet::new();
+                }
+                positions.extend(next);
+                positions.insert((pos.0, next_row));
+            }
+            Some(b']') => {
+                let new_left = self.find_free_vertical((pos.0 - 1, next_row), direction);
+                let new_right = self.find_free_vertical((pos.0, next_row), direction);
+                if new_right.is_empty() || new_left.is_empty() {
+                    return HashSet::new();
+                }
+                positions.extend(new_left);
+                positions.extend(new_right);
+                positions.insert((pos.0, next_row));
+            }
+            Some(b'[') => {
+                let new_left = self.find_free_vertical((pos.0, next_row), direction);
+                let new_right = self.find_free_vertical((pos.0 + 1, next_row), direction);
+                if new_right.is_empty() || new_left.is_empty() {
+                    return HashSet::new();
+                }
+                positions.extend(new_left);
+                positions.extend(new_right);
+                positions.insert((pos.0, next_row));
+            }
+            Some(b'.') => {
+                positions.insert((pos.0, next_row));
+            }
+            Some(b'#') => { /* we hit the wall -> stop! */ }
+            c => {
+                dbg!(&self);
+                dbg!(c);
+                unreachable!()
+            }
+        }
+        positions
+    }
+
+    fn move_vertical(&mut self, direction: isize) {
+        let mut new_positions: Vec<(usize, usize)> = self
+            .find_free_vertical(self.robot_position, direction)
+            .into_iter()
+            .collect();
+        if !new_positions.is_empty() {
+            if direction.is_positive() {
+                new_positions.sort_by(|a, b| b.1.cmp(&a.1));
+            } else {
+                new_positions.sort_by(|a, b| a.1.cmp(&b.1));
+            }
+            // now that all target locations have been found shift boxes and robot
+            // if no move is possible new_positions is empty
+            for new_pos in new_positions {
+                unsafe {
+                    self.map[new_pos.1].as_bytes_mut()[new_pos.0] =
+                        self.map[(new_pos.1 as isize - direction) as usize].as_bytes()[new_pos.0];
+                    self.map[(new_pos.1 as isize - direction) as usize].as_bytes_mut()[new_pos.0] =
+                        b'.';
+                }
+            }
+            // finally update position of robot, too!
+            self.robot_position = (
+                self.robot_position.0,
+                (self.robot_position.1 as isize + direction) as usize,
+            );
         }
     }
 
     fn exec_moves(&mut self) {
+        //dbg!(&self.map);
         for i in 0..self.robot_moves.len() {
-            let delta = match self.robot_moves[i] {
-                RobotMove::Down => (1, 0),
-                RobotMove::Up => (-1, 0),
-                RobotMove::Left => (0, -1),
-                RobotMove::Right => (0, 1),
-            };
-            if let Some(new_position) = self.find_free(delta) {
-                self.move_robot(new_position, delta);
+            //dbg!(&self.robot_moves[i]);
+            match self.robot_moves[i] {
+                RobotMove::Down => self.move_vertical(1),
+                RobotMove::Up => self.move_vertical(-1),
+                RobotMove::Left => self.move_horizontal(-1),
+                RobotMove::Right => self.move_horizontal(1),
             }
+            //dbg!(&self.map);
         }
     }
 
-    fn sum_boxes(&self) -> usize {
+    fn sum_boxes(&self, box_symbol: u8) -> usize {
         self.map
             .iter()
             .enumerate()
@@ -132,7 +202,7 @@ impl Warehouse {
             .map(|(row_index, row)| {
                 row.bytes()
                     .enumerate()
-                    .filter(|(_, c)| *c == b'O')
+                    .filter(|(_, c)| *c == box_symbol)
                     .map(|(col_index, _)| 100 * row_index + col_index)
                     .sum::<usize>()
             })
@@ -143,13 +213,28 @@ impl Warehouse {
 fn main() {
     let input = include_str!("../puzzle_input");
     println!("Part 1: {}", part1(input));
-    // println!("Part 2: {}", part2(input));
+    println!("Part 2: {}", part2(input));
+}
+
+fn transform_input(input: &str) -> String {
+    input
+        .replace("O", "[]")
+        .replace("#", "##")
+        .replace(".", "..")
+        .replace("@", "@.")
 }
 
 fn part1(input: &str) -> usize {
     let mut warehouse = input.parse::<Warehouse>().unwrap();
     warehouse.exec_moves();
-    warehouse.sum_boxes()
+    warehouse.sum_boxes(b'O')
+}
+
+fn part2(input: &str) -> usize {
+    let input = transform_input(input);
+    let mut warehouse = input.parse::<Warehouse>().unwrap();
+    warehouse.exec_moves();
+    warehouse.sum_boxes(b'[')
 }
 
 #[cfg(test)]
@@ -172,8 +257,16 @@ mod tests {
     }
 
     #[test]
-    fn test_part2() {
-        todo!()
+    fn test_transform_input() {
+        assert_eq!(
+            super::transform_input(TEST_INPUT_LARGE),
+            EXPECTED_INPUT_PART2
+        );
+    }
+
+    #[test]
+    fn test_part2_large() {
+        assert_eq!(super::part2(TEST_INPUT_LARGE), 9021);
     }
 
     const TEST_INPUT: &str = r"########
@@ -197,6 +290,28 @@ mod tests {
 #.OO.O.OO#
 #....O...#
 ##########
+
+<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
+vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
+><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<
+<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^
+^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><
+^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^
+>^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^
+<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>
+^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>
+v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^";
+
+    const EXPECTED_INPUT_PART2: &str = r"####################
+##....[]....[]..[]##
+##............[]..##
+##..[][]....[]..[]##
+##....[]@.....[]..##
+##[]##....[]......##
+##[]....[]....[]..##
+##..[][]..[]..[][]##
+##........[]......##
+####################
 
 <vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
 vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
