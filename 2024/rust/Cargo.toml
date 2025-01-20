@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = ["day1", "day14", "day2"]
+members = ["day1", "day14", "day2", "day22"]
 
 [workspace.package]
 authors = ["Philipp Degler"]
