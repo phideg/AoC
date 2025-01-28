@@ -134,7 +134,7 @@ don't count as being in any quadrant, so the only relevant robots are:
 ..... 2..1.
 ..... .....
 1.... .....
-           
+
 ..... .....
 ...12 .....
 .1... 1....
@@ -146,4 +146,12 @@ Predict the motion of the robots in your list within a space which is 101 tiles
 wide and 103 tiles tall. What will the safety factor be after exactly 100
 seconds have elapsed?
 
-To begin, get your puzzle input.
+--- Part Two ---
+
+During the bathroom break, someone notices that these robots seem awfully
+similar to ones built and used at the North Pole. If they're the same type of
+robots, they should have a hard-coded Easter egg: very rarely, most of the
+robots should arrange themselves into a picture of a Christmas tree.
+
+What is the fewest number of seconds that must elapse for the robots to display
+the Easter egg?
