@@ -1,0 +1,8 @@
+[workspace]
+resolver = "2"
+
+members = ["day1"]
+
+[workspace.package]
+authors = ["Philipp Degler"]
+description = "My solution of the Advent of Code 2025"
